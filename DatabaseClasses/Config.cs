@@ -53,16 +53,24 @@ namespace aven
             set { password = value; }
         }
 
+        private string databasePath;
+
+        public string DatabasePath
+        {
+            get { return databasePath; }
+            set { databasePath = value; }
+        }
+
         public string GetSqlCon()
         {
             if (this.WinAuth)
             {
-                //return @"Server=(localdb)\v11.0;Integrated Security=true;AttachDbFileName=C:\Users\Joel\Source\Repos\Laboratory\Laboratory\App_Data\LaboratoryDB.mdf;";
-                return @"Server=(localdb)\v11.0;Integrated Security=true;AttachDbFileName=C:\Users\Joel.bugarini\Titulacion.mdf;";
+                return @"Server="+this.Server+";Integrated Security=true;AttachDbFileName="+this.DatabasePath+";";
+
             }
             else 
             {
-                return @"";
+                return @"Server="+this.Server+";Database="+this.Database+";User Id="+this.User+";Password="+this.Password+";";
             }
         }
         public string GetAppName()

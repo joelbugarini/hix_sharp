@@ -1,8 +1,9 @@
 ﻿{
-    "Project": "Titulacion",
-    "Database": "Titulacion",
+    "Project": "WebPage",
+    "Database": "DatabseWebSql",
     "Server": "(LocalDB)\\V11.0",
     "WinAuth": "true",
     "User": "",
-    "Password": ""
+    "Password": "",
+    "DatabasePath":  "C://DatabseWebSql.mdf"
 }
