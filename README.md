@@ -49,17 +49,17 @@ page.htm.rave
 
 ##Functions
 This are the **Loop** functions:
- *  **<<RootNode>>** - This tag marks the begining of the document.
- *   **<<EndRootNode>>** - This tag marks the end of the document.
- *   **<<TableNode>>** - This tag marks the begining of the loop through the tables. Should be inside the RootNode
- *   **<<EndTableNode>>** - This tag marks the end of the loop through the tables.
- *   **<<ColumnNode>>** - This tag marks the begining of the loop through the columns. Should be inside the ColumnNode
- *   **<<EndColumnNode>>** - This tag marks the end of the loop through the columns.
+ *   **`<<RootNode>>`** - This tag marks the begining of the document.
+ *   **`<<EndRootNode>>`** - This tag marks the end of the document.
+ *   **`<<TableNode>>`** - This tag marks the begining of the loop through the tables. Should be inside the RootNode
+ *   **`<<EndTableNode>>`** - This tag marks the end of the loop through the tables.
+ *   **`<<ColumnNode>>`** - This tag marks the begining of the loop through the columns. Should be inside the ColumnNode
+ *   **`<<EndColumnNode>>`** - This tag marks the end of the loop through the columns.
  
 
 This are the **Properties** functions:
- * **<<Project.Name>>** - Get the project name from the config.json file.
- * **<<Database.Name>>** - Get the database name from the config.json file. 
- * **<<Table.Name>>** - Get the table name from the Table in course.
- * **<<Column.Name>>** - Get the column name from the Column in course.
- * **<<Column.Type>>** - Get the column type from the Column in course.
+ * **`<<Project.Name>>`** - Get the project name from the config.json file.
+ * **`<<Database.Name>>`** - Get the database name from the config.json file. 
+ * **`<<Table.Name>>`** - Get the table name from the Table in course.
+ * **`<<Column.Name>>`** - Get the column name from the Column in course.
+ * **`<<Column.Type>>`** - Get the column type from the Column in course.
