@@ -10,7 +10,7 @@ using System.IO;
 
 namespace aven
 {
-    class Program
+    class Main
     {
         static void Main(string[] args)
         {
@@ -28,6 +28,7 @@ namespace aven
                     Database db = config.GenerateDb(config);
 
                     //Read File
+                    
                     Console.WriteLine("Reading the " + args[0] + " File");
                     RootNode rootNode = new RootNode();
                     rootNode.Create(args[0], db);
@@ -62,7 +63,8 @@ namespace aven
                         }
 
                     }
-                    if (IsTableNextToRoot(rootNode.Content))
+                    
+                    if (IsTableNextToRoot(rootNode.Original))
                     {
                         foreach (Table table in db.Tables)
                         {
@@ -94,15 +96,14 @@ namespace aven
 
                     //Save Code on Disk
 
-                    Console.ReadLine();
 
                 }
-                catch { Console.WriteLine("Can't reach " + config.GetSqlCon()); Console.ReadLine(); }
+                catch { Console.WriteLine("Can't reach " + config.GetSqlCon()); }
             }
             else { Console.WriteLine("This is the aven's Class Generator\n Provide \"aven -all\" to interpretate all *.aven files\n Provide \"aven {file name}\" to interpretate specific file"); }
 
-                
-                
+
+            //Console.ReadLine();
         }
         
         private static bool IsTableNextToRoot(string rootNode)
@@ -115,7 +116,7 @@ namespace aven
             int tableTail = text.IndexOf("<<EndTableNode>>");
 
             bool result = false;
-            if ((tableHead - rootHead) == "<<RootNode>>".Length && (rootTail - tableTail) == "<<EndRootNode>>".Length) result = true;
+            if ((tableHead - rootHead) == "<<RootNode>>".Length && (rootTail - tableTail -1) == "<<EndRootNode>>".Length) result = true;
             return result;
         }
 

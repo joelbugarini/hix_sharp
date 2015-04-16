@@ -65,7 +65,15 @@ namespace aven
         {
             if (this.WinAuth)
             {
-                return @"Server="+this.Server+";Integrated Security=true;AttachDbFileName="+this.DatabasePath+";";
+                if(string.IsNullOrWhiteSpace(this.DatabasePath))
+                {
+                    return @"Data Source=" + this.Server + ";Initial Catalog=" + this.Database + ";persist security info=True;Integrated Security=SSPI;";
+                }
+                else
+                {
+                    return @"Server=" + this.Server + ";Integrated Security=true;AttachDbFileName=" + this.DatabasePath + ";";
+                }
+                
 
             }
             else 

@@ -62,8 +62,14 @@ namespace aven
 
         public void ReadScheme(string content)
         {
+            
             string copyContent = content;
             this.ColumnNodes = new List<ColumnNode>();
+            //if (content.IndexOf("<<ColumnNode>>") >= 0) 
+            //{
+            //    ColumnNode columnNode = new ColumnNode();
+            //    this.ColumnNodes.Add(columnNode);
+            //}
             while (content.IndexOf("<<ColumnNode>>") >= 0)
             {
                 int head = content.IndexOf("<<ColumnNode>>") + "<<ColumnNode>>".Length;
