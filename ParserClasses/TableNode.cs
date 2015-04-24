@@ -80,7 +80,7 @@ namespace aven
                 int replaceHead = content.IndexOf("<<ColumnNode>>");
                 int replaceTail = content.IndexOf("<<EndColumnNode>>") + "<<EndColumnNode>>".Length;
 
-                content = content.Replace(content.Substring(replaceHead, replaceTail - replaceHead), "<<Columns>>");
+                content = ReplaceFirst(content, content.Substring(replaceHead, replaceTail - replaceHead), "<<Columns>>");
                 this.Scheme = content;
 
                 ColumnNode columnNode = new ColumnNode();
@@ -95,6 +95,16 @@ namespace aven
             string result = "";
             foreach (ColumnNode columnNode in this.columnNodes) result += columnNode.Scheme;
             return result;
+        }
+
+        public static string ReplaceFirst(string text, string search, string replace)
+        {
+            int pos = text.IndexOf(search);
+            if (pos < 0)
+            {
+                return text;
+            }
+            return text.Substring(0, pos) + replace + text.Substring(pos + search.Length);
         }
 
     }

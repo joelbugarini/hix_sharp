@@ -10,7 +10,7 @@ using System.IO;
 
 namespace aven
 {
-    class Main
+    class MainProgram
     {
         static void Main(string[] args)
         {
@@ -23,8 +23,8 @@ namespace aven
                 //Get the DB schema
                 Console.WriteLine("aven Class Generator is connecting to Database " + config.Server + "\\" + config.Database);
 
-                try
-                {
+                //try
+                //{
                     Database db = config.GenerateDb(config);
 
                     //Read File
@@ -97,13 +97,13 @@ namespace aven
                     //Save Code on Disk
 
 
-                }
-                catch { Console.WriteLine("Can't reach " + config.GetSqlCon()); }
+                //}
+                //catch { Console.WriteLine("Can't reach " + config.GetSqlCon()); }
             }
             else { Console.WriteLine("This is the aven's Class Generator\n Provide \"aven -all\" to interpretate all *.aven files\n Provide \"aven {file name}\" to interpretate specific file"); }
 
 
-            //Console.ReadLine();
+            Console.ReadLine();
         }
         
         private static bool IsTableNextToRoot(string rootNode)

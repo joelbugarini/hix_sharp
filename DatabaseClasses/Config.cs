@@ -65,7 +65,7 @@ namespace aven
         {
             if (this.WinAuth)
             {
-                if(string.IsNullOrWhiteSpace(this.DatabasePath))
+                if (string.IsNullOrWhiteSpace(this.DatabasePath))
                 {
                     return @"Data Source=" + this.Server + ";Initial Catalog=" + this.Database + ";persist security info=True;Integrated Security=SSPI;";
                 }
@@ -73,12 +73,12 @@ namespace aven
                 {
                     return @"Server=" + this.Server + ";Integrated Security=true;AttachDbFileName=" + this.DatabasePath + ";";
                 }
-                
+
 
             }
-            else 
+            else
             {
-                return @"Server="+this.Server+";Database="+this.Database+";User Id="+this.User+";Password="+this.Password+";";
+                return @"Server=" + this.Server + ";Database=" + this.Database + ";User Id=" + this.User + ";Password=" + this.Password + ";";
             }
         }
         public string GetAppName()
