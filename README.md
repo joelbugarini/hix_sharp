@@ -72,7 +72,7 @@ The conection string and some properties are loaded from the `config.json` file.
 
 Just execute the exe from the command line and a folder will be created for the files created.
 
-`aven file.htm.aven` will output a folder:
+`aven file.htm` (it has to be an *.aven file) will output a folder:
 
 file
 -fileTableA.htm
