@@ -63,3 +63,16 @@ This are the **Properties** functions:
  * **`<<Table.Name>>`** - Get the table name from the Table in course.
  * **`<<Column.Name>>`** - Get the column name from the Column in course.
  * **`<<Column.Type>>`** - Get the column type from the Column in course.
+
+##Connection to Database
+The conection string and some properties are loaded from the `config.json` file. Currently just works with SQL Server and LocalDB, but I am working on other databases.
+
+##Execution
+Just execute the exe from the command line and a folder will be created for the files created.
+`aven file.htm.aven` will output a folder:
+file
+-fileTableA.htm
+-fileTableB.htm
+-fileTableC.htm
+-etc
+
