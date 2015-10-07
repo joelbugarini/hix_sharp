@@ -52,7 +52,7 @@ This are the **Loop** functions:
  *   **`[<]`** - This tag marks the begining of the document.
  *   **`[>]`** - This tag marks the end of the document.
  *   **`[[table]]`** - This tag marks the begining of the loop through the tables. Should be inside the RootNode
- *   **`[>]`** - This tag marks the end of the loop through the tables.
+ *   **`[[/table]]`** - This tag marks the end of the loop through the tables.
  *   **`[[column]]`** - This tag marks the begining of the loop through the columns. Should be inside the ColumnNode
  *   **`[[/column]]`** - This tag marks the end of the loop through the columns.
  
