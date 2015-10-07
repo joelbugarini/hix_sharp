@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace aven
+namespace hoob
 {
     class TableNode
     {
@@ -65,22 +65,22 @@ namespace aven
             
             string copyContent = content;
             this.ColumnNodes = new List<ColumnNode>();
-            //if (content.IndexOf("<<ColumnNode>>") >= 0) 
+            //if (content.IndexOf("[[column]]") >= 0) 
             //{
             //    ColumnNode columnNode = new ColumnNode();
             //    this.ColumnNodes.Add(columnNode);
             //}
-            while (content.IndexOf("<<ColumnNode>>") >= 0)
+            while (content.IndexOf("[[column]]") >= 0)
             {
-                int head = content.IndexOf("<<ColumnNode>>") + "<<ColumnNode>>".Length;
-                int tail = content.IndexOf("<<EndColumnNode>>");
+                int head = content.IndexOf("[[column]]") + "[[column]]".Length;
+                int tail = content.IndexOf("[[/column]]");
 
                 copyContent = content.Substring(head, tail - head);
 
-                int replaceHead = content.IndexOf("<<ColumnNode>>");
-                int replaceTail = content.IndexOf("<<EndColumnNode>>") + "<<EndColumnNode>>".Length;
+                int replaceHead = content.IndexOf("[[column]]");
+                int replaceTail = content.IndexOf("[[/column]]") + "[[/column]]".Length;
 
-                content = ReplaceFirst(content, content.Substring(replaceHead, replaceTail - replaceHead), "<<Columns>>");
+                content = ReplaceFirst(content, content.Substring(replaceHead, replaceTail - replaceHead), "[[columns]]");
                 this.Scheme = content;
 
                 ColumnNode columnNode = new ColumnNode();

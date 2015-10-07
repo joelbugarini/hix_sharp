@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using System.Data.SqlClient;
 using System.Reflection;
 using System.IO;
 
-namespace aven
+namespace hoob
 {
-    class MainProgram
+    class MainConsole
     {
         static void Main(string[] args)
         {
@@ -21,7 +20,7 @@ namespace aven
                 Config config = new Config().ReadConfig();
 
                 //Get the DB schema
-                Console.WriteLine("aven Class Generator is connecting to Database " + config.Server + "\\" + config.Database);
+                Console.WriteLine("hoob Class Generator is connecting to Database " + config.Server + "\\" + config.Database);
 
                 //try
                 //{
@@ -46,18 +45,18 @@ namespace aven
                                 foreach (Column column in table.Columns)
                                 {
                                     dataColumnNode += columnNode.Scheme.Replace(
-                                        "<<Column.Name>>", column.Name).Replace(
-                                        "<<Column.Type>>", column.Type).Replace(
-                                        "<<Project.Name>>", config.Project).Replace(
-                                        "<<Database.Name>>", config.Database);
+                                        "[[column.name]]", column.Name).Replace(
+                                        "[[column.type]]", column.Type).Replace(
+                                        "[[project.name]]", config.Project).Replace(
+                                        "[[database.name]]", config.Database);
                                 }
 
 
 
-                                table.Content = ReplaceFirst(table.Content, "<<Columns>>", dataColumnNode).Replace(
-                                    "<<Table.Name>>", table.Name).Replace(
-                                    "<<Project.Name>>", config.Project).Replace(
-                                    "<<Database.Name>>", config.Database);
+                                table.Content = ReplaceFirst(table.Content, "[[columns]]", dataColumnNode).Replace(
+                                    "[[table.name]]", table.Name).Replace(
+                                    "[[project.name]]", config.Project).Replace(
+                                    "[[database.name]]", config.Database);
 
                             }
                         }
@@ -82,7 +81,7 @@ namespace aven
                         {
                             document += table.Content;
                         }
-                        document = rootNode.Scheme.Replace("<<Table>>", document);
+                        document = rootNode.Scheme.Replace("[[table.container]]", document);
 
                         string file = Path.GetFileNameWithoutExtension(args[0]);
                         string extension = Path.GetExtension(args[0]);
@@ -100,23 +99,23 @@ namespace aven
                 //}
                 //catch { Console.WriteLine("Can't reach " + config.GetSqlCon()); }
             }
-            else { Console.WriteLine("This is the aven's Class Generator\n Provide \"aven -all\" to interpretate all *.aven files\n Provide \"aven {file name}\" to interpretate specific file"); }
+            else { Console.WriteLine("This is the hoob's Class Generator\n Provide \"hoob -all\" to interpretate all *.hoob files\n Provide \"hoob {file name}\" to interpretate specific file"); }
 
 
-            Console.ReadLine();
+           // Console.ReadLine();
         }
         
         private static bool IsTableNextToRoot(string rootNode)
         {
             string text = rootNode.Replace(" ", "").Replace("\r", "").Replace("\n", "");
-            int rootHead = text.IndexOf("<<RootNode>>");
-            int rootTail = text.IndexOf("<<EndRootNode>>");
+            int rootHead = text.IndexOf("[<]");
+            int rootTail = text.IndexOf("[>]");
 
-            int tableHead = text.IndexOf("<<TableNode>>");
-            int tableTail = text.IndexOf("<<EndTableNode>>");
+            int tableHead = text.IndexOf("[[table]]");
+            int tableTail = text.IndexOf("[>]");
 
             bool result = false;
-            if ((tableHead - rootHead) == "<<RootNode>>".Length && (rootTail - tableTail -1) == "<<EndRootNode>>".Length) result = true;
+            if ((tableHead - rootHead) == "[<]".Length && (rootTail - tableTail -1) == "[>]".Length) result = true;
             return result;
         }
 

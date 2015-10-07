@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace aven
+namespace hoob
 {
     public class RootNode
     {
@@ -47,13 +47,13 @@ namespace aven
 
         public void ReadOriginal(string filename)
         {
-            string text = System.IO.File.ReadAllText(filename + ".aven");
+            string text = System.IO.File.ReadAllText(filename + ".hoob");
             this.original = text;
         }
         public void ReadContent(string original) 
         {
-            int head = original.IndexOf("<<RootNode>>") + "<<RootNode>>".Length;
-            int tail = original.IndexOf("<<EndRootNode>>");
+            int head = original.IndexOf("[<]") + "[<]".Length;
+            int tail = original.IndexOf("[>]");
             this.content = original.Substring(head, tail - head);
         }
 
@@ -61,18 +61,18 @@ namespace aven
         {
             string contentCopy = content;
             this.TableNodes = new List<TableNode>();
-            int ss = content.IndexOf("<<TableNode>>");
-            while (content.IndexOf("<<TableNode>>") >= 0)
+            int ss = content.IndexOf("[[table]]");
+            while (content.IndexOf("[[table]]") >= 0)
             {
-                int head = content.IndexOf("<<TableNode>>") + "<<TableNode>>".Length;
-                int tail = content.IndexOf("<<EndTableNode>>");
+                int head = content.IndexOf("[[table]]") + "[[table]]".Length;
+                int tail = content.IndexOf("[[/table]]");
 
                 contentCopy = content.Substring(head, tail - head);
 
-                int replaceHead = content.IndexOf("<<TableNode>>");
-                int replaceTail = content.IndexOf("<<EndTableNode>>") + "<<EndTableNode>>".Length;
+                int replaceHead = content.IndexOf("[[table]]");
+                int replaceTail = content.IndexOf("[[/table]]") + "[[/table]]".Length;
 
-                content = content.Replace(content.Substring(replaceHead, replaceTail - replaceHead), "<<Table>>");
+                content = content.Replace(content.Substring(replaceHead, replaceTail - replaceHead), "[[table.container]]");
                 this.Scheme = content;
 
                 TableNode tableNode = new TableNode();

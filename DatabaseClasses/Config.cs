@@ -1,65 +1,22 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace aven
+namespace hoob
 {
     class Config
     {
-        private string database;
-
-        public string Database
-        {
-            get { return database; }
-            set { database = value; }
-        }
-        private string server;
-
-        public string Server
-        {
-            get { return server; }
-            set { server = value; }
-        }
-        private string project;
-
-        public string Project
-        {
-            get { return project; }
-            set { project = value; }
-        }
-        private bool winAuth;
-
-        public bool WinAuth
-        {
-            get { return winAuth; }
-            set { winAuth = value; }
-        }
-        private string user;
-
-        public string User
-        {
-            get { return user; }
-            set { user = value; }
-        }
-        private string password;
-
-        public string Password
-        {
-            get { return password; }
-            set { password = value; }
-        }
-
-        private string databasePath;
-
-        public string DatabasePath
-        {
-            get { return databasePath; }
-            set { databasePath = value; }
-        }
+        public string RDBMS { get; set; }
+        public string Database { get; set; }
+        public string Server { get; set; }
+        public string Project { get; set; }
+        public bool WinAuth { get; set; }
+        public string User { get; set; }
+        public string Password { get; set; }        
+        public string DatabasePath { get; set; }
 
         public string GetSqlCon()
         {
@@ -162,9 +119,61 @@ namespace aven
         //Read the config file
         public Config ReadConfig()
         {
+            Config conf = new Config();
             string text = System.IO.File.ReadAllText("config.json");
-            Config readedConfig = JsonConvert.DeserializeObject<Config>(text);
-            return readedConfig;
+            string[] t = text
+                .Replace("{", "")
+                .Replace("}", "")
+                .Replace("\"", "")
+                .Replace("\n", "")
+                .Replace("\r", "")                
+                .Replace(" ", "")
+                .Split(',');
+            foreach (string prop in t)
+            {
+                string val = "";
+                if (prop.Split(':').Length > 2)
+                {
+                    List<string> tmp = prop.Split(':').ToList();
+                    tmp.Remove(tmp[0]);
+                    val = string.Join(":", tmp);
+                }
+                else {
+                    val = prop.Split(':').Length == 2 ? prop.Split(':')[1] : "";
+                }
+                
+                switch (prop.Split(':')[0])
+                {
+                    case "RDBMS":
+                        conf.RDBMS = val;
+                        break;
+                    case "Database":
+                        conf.Database = val;
+                        break;
+                    case "Server":
+                        conf.Server = val;
+                        break;
+                    case "Project":
+                        conf.Project = val;
+                        break;
+                    case "WinAuth":
+                        conf.WinAuth = Convert.ToBoolean(val);
+                        break;
+                    case "User":
+                        conf.User = val;
+                        break;
+                    case "Password":
+                        conf.Password = val;
+                        break;
+                    case "DatabasePath":
+                        conf.DatabasePath = val;
+                        break;
+
+                }
+               
+            }
+            return conf;
         }
+
     }
 }

@@ -1,9 +1,9 @@
-﻿{
-    "Project": "Titulacion",
-    "Database": "Titulacion",
-    "Server": "192.168.12.9",
-    "WinAuth": "false",
-    "User": "userTitulacion",
-    "Password": "q8qBvd2TSaksx1dkhgDW",
-    "DatabasePath":  ""
+﻿ {
+    "Project": "LaboratoryDB",
+    "Database": "LaboratoryDB",
+    "Server": "(LocalDB)\v11.0",
+    "WinAuth": "true",
+    "User": "",
+    "Password": "",
+    "DatabasePath": "C:\Users\joelb\Source\Repos\Laboratory\Laboratory\App_Data\LaboratoryDB.mdf"
 }

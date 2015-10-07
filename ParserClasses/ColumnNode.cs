@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace aven
+namespace hoob
 {
     class ColumnNode
     {
@@ -48,7 +48,7 @@ namespace aven
         public void Create(string text)
         {
             this.Original = text;
-            this.Content = text.Replace("<<ColumnNode>>", "").Replace("<<EndColumnNode>>", "");
+            this.Content = text.Replace("[[column]]", "").Replace("[[/column]]", "");
             this.Scheme = content;
         }
 
