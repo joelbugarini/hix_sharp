@@ -1,5 +1,5 @@
 # hoob code generator
-hoob is a code generator, create an .hoob scheme file and the generator will iterate over your Database, tables and columns.
+hoob is a code generator, create a .hoob scheme file and the generator will iterate over your Database, tables and columns.
 
 ## File extension
 hoob read files with the extension ".hoob" e.g.:
@@ -14,7 +14,7 @@ The name of the file will be used as a Prefix for the generated code file and th
 
 Just grab the pice of code you want to generate and use this syntaxt to generate your schema:
 
-page.htm.rave
+page.htm.hoob
 
 ```aspx
 [<]
