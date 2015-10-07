@@ -16,13 +16,13 @@ Just grab the pice of code you wanna generate and use this syntaxt to generate y
 
 page.htm.rave
 
-```html
+```aspx
 [<]
 <!doctype html>
 <html lang="en">
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8">
-	<title><<Project.Name>></title>
+	<title>[[project.name]]</title>
 </head>
 	<body>
 		[[table]]
@@ -35,7 +35,7 @@ page.htm.rave
 					Column: [[column.name]]
 				</td>
 				<td>
-					Type: <<Column.Type>>
+					Type: [[column.type]]
 				</td>
 			</tr>
 			[[/column]]
@@ -58,11 +58,11 @@ This are the **Loop** functions:
  
 
 This are the **Properties** functions:
- * **`<<Project.Name>>`** - Get the project name from the config.json file.
- * **`<<Database.Name>>`** - Get the database name from the config.json file. 
+ * **`[[project.name]]`** - Get the project name from the config.json file.
+ * **`[[database.name]]`** - Get the database name from the config.json file. 
  * **`[[table.name]]`** - Get the table name from the Table in course.
  * **`[[column.name]]`** - Get the column name from the Column in course.
- * **`<<Column.Type>>`** - Get the column type from the Column in course.
+ * **`[[column.type]]`** - Get the column type from the Column in course.
 
 ##Connection to Database
 The conection string and some properties are loaded from the `config.json` file. Currently just works with SQL Server and LocalDB, but I am working on other databases.
@@ -75,12 +75,10 @@ Just execute the exe from the command line and a folder will be created for the 
 `hoob file.htm` (it has to be an *.hoob file) will output a folder:
 
 file
-
--fileTableA.htm
-
--fileTableB.htm
-
--fileTableC.htm
-
--etc
+```bash
+-| ../ 
+ |-fileTableA.htm
+ |-fileTableB.htm
+ |-fileTableC.htm
+```
 
