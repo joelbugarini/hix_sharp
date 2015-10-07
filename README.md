@@ -41,7 +41,7 @@ page.htm.hoob
 			[[/column]]
 		</table>
 
-		[>]
+		[[/table]]
 	</body>
 </html>
 [>]
