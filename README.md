@@ -12,7 +12,7 @@ The name of the file will be used as a Prefix for the generated code file and th
  
 ## Syntax
 
-Just grab the pice of code you wanna generate and use this syntaxt to generate your schema:
+Just grab the pice of code you want to generate and use this syntaxt to generate your schema:
 
 page.htm.rave
 
