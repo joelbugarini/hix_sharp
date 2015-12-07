@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace hoob
+using System.Text;
+
+
+namespace hix
 {
     public class RootNode
     {
@@ -47,7 +47,7 @@ namespace hoob
 
         public void ReadOriginal(string filename)
         {
-            string text = System.IO.File.ReadAllText(filename + ".hoob");
+            string text = System.IO.File.ReadAllText(filename + ".hix");
             this.original = text;
         }
         public void ReadContent(string original) 

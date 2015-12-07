@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace hoob
+namespace hix
 {
     class Config
     {
@@ -22,7 +20,7 @@ namespace hoob
         {
             if (this.WinAuth)
             {
-                if (string.IsNullOrWhiteSpace(this.DatabasePath))
+                if (string.IsNullOrEmpty(this.DatabasePath))
                 {
                     return @"Data Source=" + this.Server + ";Initial Catalog=" + this.Database + ";persist security info=True;Integrated Security=SSPI;";
                 }
@@ -115,7 +113,7 @@ namespace hoob
 
             return Columns;
         }
-
+        
         //Read the config file
         public Config ReadConfig()
         {
@@ -134,8 +132,7 @@ namespace hoob
                 string val = "";
                 if (prop.Split(':').Length > 2)
                 {
-                    List<string> tmp = prop.Split(':').ToList();
-                    tmp.Remove(tmp[0]);
+                    string[] tmp = Util.Tail(prop.Split(':'));
                     val = string.Join(":", tmp);
                 }
                 else {

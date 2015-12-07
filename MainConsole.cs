@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+
 using System.Text;
-using System.Threading.Tasks;
+
 using System.Data.SqlClient;
 using System.Reflection;
 using System.IO;
 
-namespace hoob
+namespace hix
 {
     class MainConsole
     {
@@ -20,7 +20,7 @@ namespace hoob
                 Config config = new Config().ReadConfig();
 
                 //Get the DB schema
-                Console.WriteLine("hoob Class Generator is connecting to Database " + config.Server + "\\" + config.Database);
+                Console.WriteLine("hix Class Generator is connecting to Database " + config.Server + "\\" + config.Database);
 
                 //try
                 //{
@@ -99,7 +99,7 @@ namespace hoob
                 //}
                 //catch { Console.WriteLine("Can't reach " + config.GetSqlCon()); }
             }
-            else { Console.WriteLine("This is the hoob's Class Generator\n Provide \"hoob -all\" to interpretate all *.hoob files\n Provide \"hoob {file name}\" to interpretate specific file"); }
+            else { Console.WriteLine("This is the hix's Class Generator\n Provide \"hix -all\" to interpretate all *.hix files\n Provide \"hix {file name}\" to interpretate specific file"); }
 
 
            // Console.ReadLine();

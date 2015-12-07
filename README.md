@@ -1,11 +1,11 @@
-# hoob code generator
-hoob is a code generator, create a .hoob scheme file and the generator will iterate over your Database, tables and columns.
+# hix code generator
+hix is a code generator, create a .hix scheme file and the generator will iterate over your Database, tables and columns.
 
 ## File extension
-hoob read files with the extension ".hoob" e.g.:
- - file.htm.hoob
+hix read files with the extension ".hix" e.g.:
+ - file.htm.hix
  
-The name of the file will be used as a Prefix for the generated code file and the extension before ".hoob" will be the code file extension e.g.:
+The name of the file will be used as a Prefix for the generated code file and the extension before ".hix" will be the code file extension e.g.:
 
  - file { table name } .htm
   
@@ -14,7 +14,7 @@ The name of the file will be used as a Prefix for the generated code file and th
 
 Just grab the pice of code you want to generate and use this syntaxt to generate your schema:
 
-page.htm.hoob
+page.htm.hix
 
 ```aspx
 [<]
@@ -72,7 +72,7 @@ The conection string and some properties are loaded from the `config.json` file.
 
 Just execute the exe from the command line and a folder will be created for the files created.
 
-`hoob file.htm` (it has to be an *.hoob file) will output a folder:
+`hix file.htm` (it has to be an *.hix file) will output a folder:
 
 file
 ```bash

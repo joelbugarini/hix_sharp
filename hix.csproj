@@ -7,9 +7,9 @@
     <ProjectGuid>{8A57C221-4943-4C79-8407-017E25B134B8}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>hoob</RootNamespace>
-    <AssemblyName>hoob</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <RootNamespace>hix</RootNamespace>
+    <AssemblyName>hix</AssemblyName>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
@@ -26,6 +26,7 @@
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -48,10 +49,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -59,6 +56,7 @@
     <Compile Include="DatabaseClasses\Column.cs" />
     <Compile Include="DatabaseClasses\Config.cs" />
     <Compile Include="DatabaseClasses\Database.cs" />
+    <Compile Include="DatabaseClasses\Util.cs" />
     <Compile Include="MainConsole.cs" />
     <Compile Include="ParserClasses\ColumnNode.cs" />
     <Compile Include="ParserClasses\RootNode.cs" />
@@ -72,7 +70,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="LICENSE" />
-    <None Include="page.htm.hoob">
+    <None Include="page.htm.hix">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="README.md" />

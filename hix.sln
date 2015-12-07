@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "hoob", "hoob.csproj", "{8A57C221-4943-4C79-8407-017E25B134B8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "hix", "hix.csproj", "{8A57C221-4943-4C79-8407-017E25B134B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
