@@ -1,9 +1,8 @@
 ﻿ {
     "Project": "LaboratoryDB",
     "Database": "LaboratoryDB",
-    "Server": "(LocalDB)\v11.0",
-    "WinAuth": "true",
-    "User": "",
-    "Password": "",
-    "DatabasePath": "C:\Users\joelb\Source\Repos\Laboratory\Laboratory\App_Data\LaboratoryDB.mdf"
+    "Server": "localhost\SQLExpress",
+    "WinAuth": "false",
+    "User": "sa",
+    "Password": "rareware"
 }

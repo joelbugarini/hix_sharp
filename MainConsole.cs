@@ -12,9 +12,9 @@ namespace hix
     class MainConsole
     {
         static void Main(string[] args)
-        {
+        {            
             //Validate args
-            if (args.Length > 0)
+            if (IsGenerateOnly(args))
             {
                 //Read Config File
                 Config config = new Config().ReadConfig();
@@ -28,46 +28,64 @@ namespace hix
 
                     //Read File
                     
-                    Console.WriteLine("Reading the " + args[0] + " File");
+                    Console.WriteLine("Reading the " + args[1] + " File");
                     RootNode rootNode = new RootNode();
-                    rootNode.Create(args[0], db);
+                    rootNode.Create(args[1], db);
 
-                    //Map File to Generate Code
+                //Map File to Generate Code
 
-                    foreach (TableNode tableNode in rootNode.TableNodes)
+                foreach (TableNode tableNode in rootNode.TableNodes)
+                {
+                    foreach (Table table in db.Tables)
                     {
-                        foreach (Table table in db.Tables)
+
+                        table.Content = tableNode.Scheme;
+                        foreach (ColumnNode columnNode in tableNode.ColumnNodes)
                         {
-                            table.Content = tableNode.Scheme;
-                            foreach (ColumnNode columnNode in tableNode.ColumnNodes)
+                            string dataColumnNode = "";
+                            if (columnNode.Type == "notype")
                             {
-                                string dataColumnNode = "";
                                 foreach (Column column in table.Columns)
                                 {
+
                                     dataColumnNode += columnNode.Scheme.Replace(
-                                        "[[column.name]]", column.Name).Replace(
-                                        "[[column.type]]", column.Type).Replace(
-                                        "[[project.name]]", config.Project).Replace(
-                                        "[[database.name]]", config.Database);
+                                            "[[column.name]]", column.Name).Replace(
+                                            "[[column.type]]", column.Type).Replace(
+                                            "[[project.name]]", config.Project).Replace(
+                                            "[[database.name]]", config.Database);
                                 }
+                            }
+                            else
+                            {
+                                foreach (Column column in table.Columns)
+                                {
+                                    if (columnNode.Type == column.Type)
+                                    {
+                                        dataColumnNode += columnNode.Scheme.Replace(
+                                                "[[column.name]]", column.Name).Replace(
+                                                "[[column.type]]", column.Type).Replace(
+                                                "[[project.name]]", config.Project).Replace(
+                                                "[[database.name]]", config.Database);
+                                    }
+                                }
+                            }
 
-
-
-                                table.Content = ReplaceFirst(table.Content, "[[columns]]", dataColumnNode).Replace(
+                            
+                            table.Content = ReplaceFirst(table.Content, "[[columns]]", dataColumnNode).Replace(
                                     "[[table.name]]", table.Name).Replace(
                                     "[[project.name]]", config.Project).Replace(
                                     "[[database.name]]", config.Database);
 
-                            }
                         }
-
                     }
+
+                }
                     
                     if (IsTableNextToRoot(rootNode.Original))
                     {
                         foreach (Table table in db.Tables)
                         {
-                            string file = Path.GetFileNameWithoutExtension(args[0]);
+                            string file = Path.GetFileNameWithoutExtension(args[1]);
                             string extension = Path.GetExtension(args[0]);
                             (new FileInfo(file + "/")).Directory.Create();
                             CreateFile(file + "/" + file + table.Name + extension, table.Content);
@@ -99,12 +117,39 @@ namespace hix
                 //}
                 //catch { Console.WriteLine("Can't reach " + config.GetSqlCon()); }
             }
-            else { Console.WriteLine("This is the hix's Class Generator\n Provide \"hix -all\" to interpretate all *.hix files\n Provide \"hix {file name}\" to interpretate specific file"); }
+            else {
+
+                switch (Function(args))
+                {
+                    case "types":
+                        Config c = new Config();
+                        c.GetTypes(c.ReadConfig());
+                        break;
 
 
-           // Console.ReadLine();
+                }
+            }
+
+
+           //Console.ReadLine();
         }
-        
+
+        private static bool IsGenerateOnly(string[] args)
+        {
+            if (args.Length == 0) { 
+                Console.WriteLine("This is the hix's Class Generator\n Provide \"hix -all\" to interpretate all *.hix files\n Provide \"hix {file name}\" to interpretate specific file");
+                return false;
+            }
+            
+            if (args[0] == "generate" && args.Length > 1) return true;
+            else return false;
+        }
+
+        private static string Function(string[] args)
+        {
+            return args[0];
+        }
+
         private static bool IsTableNextToRoot(string rootNode)
         {
             string text = rootNode.Replace(" ", "").Replace("\r", "").Replace("\n", "");
@@ -112,10 +157,10 @@ namespace hix
             int rootTail = text.IndexOf("[>]");
 
             int tableHead = text.IndexOf("[[table]]");
-            int tableTail = text.IndexOf("[>]");
+            int tableTail = text.IndexOf("[[/table]]")+ "[[/table]]".Length;
 
             bool result = false;
-            if ((tableHead - rootHead) == "[<]".Length && (rootTail - tableTail -1) == "[>]".Length) result = true;
+            if ((tableHead - rootHead) == "[<]".Length && rootTail == tableTail) result = true;
             return result;
         }
 

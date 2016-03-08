@@ -23,6 +23,15 @@ namespace hix
             get { return content; }
             set { content = value; }
         }
+
+        private string type;
+
+        public string Type
+        {
+            get { return type; }
+            set { type = value; }
+        }
+
         private string scheme;
 
         public string Scheme
@@ -45,8 +54,9 @@ namespace hix
             set { db = value; }
         }
 
-        public void Create(string text)
+        public void Create(string text, string type)
         {
+            this.Type = type;
             this.Original = text;
             this.Content = text.Replace("[[column]]", "").Replace("[[/column]]", "");
             this.Scheme = content;

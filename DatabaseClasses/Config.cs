@@ -60,10 +60,10 @@ namespace hix
         public List<Table> GetTables(Config config)
         {
             List<Table> Tables = new List<Table>();
-            string queryString = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'";
+            string queryTables = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'";
             using (SqlConnection connection = new SqlConnection(config.GetSqlCon()))
             {
-                SqlCommand command = new SqlCommand(queryString, connection);
+                SqlCommand command = new SqlCommand(queryTables, connection);
                 connection.Open(); SqlDataReader reader = command.ExecuteReader();
                 try
                 {
@@ -113,7 +113,32 @@ namespace hix
 
             return Columns;
         }
-        
+
+        //Print Types
+        public void GetTypes(Config config)
+        {
+            List<string> Tables = new List<string>();
+            string queryTypes = "SELECT name FROM sys.Types";
+            using (SqlConnection connection = new SqlConnection(config.GetSqlCon()))
+            {
+                SqlCommand command = new SqlCommand(queryTypes, connection);
+                connection.Open(); SqlDataReader reader = command.ExecuteReader();
+                try
+                {
+                    while (reader.Read())
+                    {
+                        Table table = new Table();
+                        Console.WriteLine(reader["name"].ToString());                         
+                    }
+                }
+                finally
+                {
+                    // Always call Close when done reading.
+                    reader.Close();
+                }
+            }            
+        }
+
         //Read the config file
         public Config ReadConfig()
         {
@@ -172,5 +197,7 @@ namespace hix
             return conf;
         }
 
+
+        
     }
 }
