@@ -94,31 +94,26 @@ namespace hix
 
             //content = content.Replace("[[columns]]","");
             copyContent = content;
-            var r = Regex.Match(content, @"\[\[(column )\w+\]\]");
-            var re = Regex.Match(content, @"\[\[\/(column )\w+\]\]");
-            while (content.IndexOf(re.Groups[0].Value) >= 0)
+            string originalContent = content;
+            foreach (Match r in Regex.Matches(originalContent, @"\[\[(column )\w+\]\]"))
             {
-                
-                int head = r.Index + r.Groups[0].Value.Length;
+                string type = r.Value.Split(' ')[1].Replace("[[", "").Replace("]]", "");
+                var re = Regex.Match(originalContent, @"\[\[\/(column "+type+@")+\]\]");
+                int head = r.Index + r.Value.Length;
                 int tail = re.Index; 
 
-                copyContent = content.Substring(head, tail - head);
+                copyContent = originalContent.Substring(head, tail - head);
 
                 int replaceHead = r.Index;
                 int replaceTail = re.Index + re.Groups[0].Value.Length;
 
-                content = ReplaceFirst(content, content.Substring(replaceHead, replaceTail - replaceHead), "[[columns]]");
-                this.Scheme = content;
-                //Console.WriteLine(content);
-                string type = r.Groups[0].Value.Split(' ')[1].Replace("[[", "").Replace("]]", "");
+                content = ReplaceFirst(content, originalContent.Substring(replaceHead, replaceTail - replaceHead), "[[columns]]");
+                this.Scheme = content;             
 
                 ColumnNode columnNode = new ColumnNode();
                 columnNode.Create(copyContent, type);
                 this.ColumnNodes.Add(columnNode);
-                //TableNodes.Add(content.Substring(head, content.Length - head));
             }
-
-
         }
 
         public string GetAllColums()
