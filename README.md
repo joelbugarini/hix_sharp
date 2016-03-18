@@ -101,7 +101,7 @@ This are the **Properties** functions:
  * **`[[column.type]]`** - Get the column type from the Column in course.
 
 ##Column types
-The `[[column]]` tag is used to iterate over every single column of the table, but you can use the data type to use different code for each type:
+The `[[column]]` tag is used to iterate over every single column of the table, but you can use the data type to use different code for each type `[[column int]]`:
 
 ```aspx
 [<][[table]]
