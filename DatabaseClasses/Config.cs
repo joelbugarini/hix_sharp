@@ -85,11 +85,11 @@ namespace hix
         }
 
         //Fill Columns
-        public List<Column> GetColumns(Config config, string ColumnName)
+        public List<Column> GetColumns(Config config, string TableName)
         {
 
             List<Column> Columns = new List<Column>();
-            string queryString = "SELECT * FROM " + config.Database + ".INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'" + ColumnName + "'";
+            string queryString = "SELECT * FROM " + config.Database + ".INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'" + TableName + "'";
             using (SqlConnection connection = new SqlConnection(config.GetSqlCon()))
             {
                 SqlCommand command = new SqlCommand(queryString, connection);
@@ -128,8 +128,36 @@ namespace hix
                     while (reader.Read())
                     {
                         Table table = new Table();
-                        Console.WriteLine(reader["name"].ToString());                         
+                        Console.WriteLine(reader["name"].ToString());
                     }
+                }
+                finally
+                {
+                    // Always call Close when done reading.
+                    reader.Close();
+                }
+            }
+        }
+
+        //Print Types per Table
+        public void GetTypesTable(Config config, string TableName)
+        {
+            string queryString = "SELECT * FROM " + config.Database + ".INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'" + TableName + "'";
+            using (SqlConnection connection = new SqlConnection(config.GetSqlCon()))
+            {
+                SqlCommand command = new SqlCommand(queryString, connection);
+                connection.Open(); SqlDataReader reader = command.ExecuteReader();
+                try
+                {
+                    int ct = 0;
+                    while (reader.Read())
+                    {
+                        ct++;
+                        string whitespace = "";
+                        for (int c = reader["COLUMN_NAME"].ToString().Length; c < 25; c++) { whitespace += " "; }
+                        Console.WriteLine(reader["COLUMN_NAME"].ToString() + ":" + whitespace + reader["DATA_TYPE"].ToString());
+                    }
+                    if (ct == 0) { Console.WriteLine("Table: '" + TableName + "' does not exist."); }
                 }
                 finally
                 {
@@ -138,7 +166,6 @@ namespace hix
                 }
             }            
         }
-
         //Read the config file
         public Config ReadConfig()
         {

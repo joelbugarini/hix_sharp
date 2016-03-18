@@ -86,10 +86,10 @@ namespace hix
                         foreach (Table table in db.Tables)
                         {
                             string file = Path.GetFileNameWithoutExtension(args[1]);
-                            string extension = Path.GetExtension(args[0]);
-                            (new FileInfo(file + "/")).Directory.Create();
-                            CreateFile(file + "/" + file + table.Name + extension, table.Content);
-                            Console.WriteLine(file + "/" + file + table.Name + extension + " Created");
+                            string extension = Path.GetExtension(args[1]);
+                            (new FileInfo("output/"+file + "/")).Directory.Create();
+                            CreateFile("output/" + file + "/" + file + table.Name + extension, table.Content);
+                            Console.WriteLine("output/" + file + "/" + file + table.Name + extension + " Created");
                         }
                     }
                     else
@@ -99,13 +99,15 @@ namespace hix
                         {
                             document += table.Content;
                         }
-                        document = rootNode.Scheme.Replace("[[table.container]]", document);
+                        document = rootNode.Scheme.Replace("[[table.container]]", document)
+                                                  .Replace("[[project.name]]", config.Project)
+                                                  .Replace("[[database.name]]", config.Database);
 
-                        string file = Path.GetFileNameWithoutExtension(args[0]);
-                        string extension = Path.GetExtension(args[0]);
-                        (new FileInfo(file + "/")).Directory.Create();
-                        CreateFile(file + "/" + file + extension, document);
-                        Console.WriteLine(file + "/" + file + extension + " Created");
+                        string file = Path.GetFileNameWithoutExtension(args[1]);
+                        string extension = Path.GetExtension(args[1]);
+                        (new FileInfo("output/" + file + "/")).Directory.Create();
+                        CreateFile("output/" + file + "/" + file + extension, document);
+                        Console.WriteLine("output/" + file + "/" + file + extension + " Created");
 
                     }
 
@@ -122,10 +124,25 @@ namespace hix
                 switch (Function(args))
                 {
                     case "types":
-                        Config c = new Config();
-                        c.GetTypes(c.ReadConfig());
-                        break;
 
+                        if (args.Length > 1)
+                        {
+                            try
+                            {
+                                Config c = new Config();
+                                c.GetTypesTable(c.ReadConfig(), args[1]);
+                            }
+                            catch (Exception ex) { Console.WriteLine("error: '" +args[1]+ "' did not match any table."); }
+                        }
+                        else
+                        {
+                            Config c = new Config();
+                            c.GetTypes(c.ReadConfig());
+                        }
+                        break;
+                    case "noargs":
+                        Console.WriteLine("Bye!");
+                        break;
 
                 }
             }
@@ -147,7 +164,7 @@ namespace hix
 
         private static string Function(string[] args)
         {
-            return args[0];
+            return (args.Length == 0)?"noargs":args[0];
         }
 
         private static bool IsTableNextToRoot(string rootNode)
