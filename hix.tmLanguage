@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>fileTypes</key>
+	<array>
+		<string>hix</string>
+	</array>
+	<key>foldingStartMarker</key>
+	<string>\[\[\w+\]\]|\[\&lt;\]|\[\[\w+ \w+\]\]</string>
+	<key>foldingStopMarker</key>
+	<string>\[\[\/\w+\]\]|\[\&gt;\]|\[\[\/\w+ \w+\]\]</string>
+	<key>name</key>
+	<string>Hix</string>
+	<key>patterns</key>
+	<array>
+		<dict>
+			<key>match</key>
+			<string>\[\[\w+\]\]|\[\[\/\w+\]\]</string>
+			<key>name</key>
+			<string>keyword.control.untitled</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>\[&lt;\]|\[&gt;\]</string>
+			<key>name</key>
+			<string>string.quoted.double.untitled</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>\[\[\w+ \w+\]\]|\[\[\/\w+ \w+\]\]</string>
+			<key>name</key>
+			<string>markup.list.undef</string>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>\[\[\w+.\w+\]\]|\[\[\/\w+ \w+\]\]</string>
+			<key>name</key>
+			<string>markup.bold.list</string>
+		</dict>
+	</array>
+	<key>scopeName</key>
+	<string>source.hix</string>
+	<key>uuid</key>
+	<string>c8d1458b-f5eb-4119-a560-09fa8651ca71</string>
+</dict>
+</plist>

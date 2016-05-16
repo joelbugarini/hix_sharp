@@ -16,36 +16,12 @@ Just grab the pice of code you want to generate and use this syntaxt to generate
 
 page.htm.hix
 
-```aspx
-[<]
-<!doctype html>
-<html lang="en">
-<head>
-	<meta http-equiv="content-type" content="text/html; charset=utf-8">
-	<title>[[project.name]]</title>
-</head>
-	<body>
-		[[table]]
-		<p>This is the table [[table.name]] </p>
-		
-		<table>
-			[[column]]
-			<tr>
-				<td>
-					Column: [[column.name]]
-				</td>
-				<td>
-					Type: [[column.type]]
-				</td>
-			</tr>
-			[[/column]]
-		</table>
+![hix-type](https://cloud.githubusercontent.com/assets/4912547/15022272/b5fbbbf0-11df-11e6-8bfc-577859ead4e6.JPG)
 
-		[[/table]]
-	</body>
-</html>
-[>]
-```
+
+
+![hix-cap](https://cloud.githubusercontent.com/assets/4912547/15022273/b5fc088a-11df-11e6-8c51-268c1f078779.JPG)
+
 Save the template next to the `config` file and execute the command:
 ```bash
 hix generate page.htm
@@ -55,33 +31,7 @@ Note: the file name goes without the `hix` extension
 
 This will generate a file with all the tables under an `output` folder, but if you want to generate a file per table you can join the root element to the table element as follows:
 
-```aspx
-[<][[table]]
-<!doctype html>
-<html lang="en">
-<head>
-	<meta http-equiv="content-type" content="text/html; charset=utf-8">
-	<title>[[project.name]]</title>
-</head>
-	<body>
-		<p>This is the table [[table.name]] </p>
-		
-		<table>
-			[[column]]
-			<tr>
-				<td>
-					Column: [[column.name]]
-				</td>
-				<td>
-					Type: [[column.type]]
-				</td>
-			</tr>
-			[[/column]]
-		</table>
-	</body>
-</html>
-[[/table]][>]
-```
+![hix-cap2](https://cloud.githubusercontent.com/assets/4912547/15022274/b5fc65c8-11df-11e6-81d7-75c373329401.JPG)
 
 ##Reserved Words
 This are the **Loop** functions:
