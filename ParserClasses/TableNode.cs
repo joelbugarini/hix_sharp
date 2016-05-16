@@ -95,17 +95,25 @@ namespace hix
             //content = content.Replace("[[columns]]","");
             copyContent = content;
             string originalContent = content;
+            
             foreach (Match r in Regex.Matches(originalContent, @"\[\[(column )\w+\]\]"))
             {
                 string type = r.Value.Split(' ')[1].Replace("[[", "").Replace("]]", "");
-                var re = Regex.Match(originalContent, @"\[\[\/(column "+type+@")+\]\]");
+
+                var re = Regex.Matches(originalContent, @"\[\[\/(column "+type+@")+\]\]");
                 int head = r.Index + r.Value.Length;
-                int tail = re.Index; 
+                int tail = re[0].Index;
+
+                int ct = 0;
+                while(tail - head < 0) {
+                    ct++;
+                    tail = re[ct].Index;
+                }
 
                 copyContent = originalContent.Substring(head, tail - head);
 
                 int replaceHead = r.Index;
-                int replaceTail = re.Index + re.Groups[0].Value.Length;
+                int replaceTail = re[ct].Index + re[ct].Value.Length;
 
                 content = ReplaceFirst(content, originalContent.Substring(replaceHead, replaceTail - replaceHead), "[[columns]]");
                 this.Scheme = content;             

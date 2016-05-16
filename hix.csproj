@@ -50,6 +50,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
@@ -57,6 +58,7 @@
     <Compile Include="DatabaseClasses\Config.cs" />
     <Compile Include="DatabaseClasses\Database.cs" />
     <Compile Include="DatabaseClasses\Util.cs" />
+    <Compile Include="help.cs" />
     <Compile Include="MainConsole.cs" />
     <Compile Include="ParserClasses\ColumnNode.cs" />
     <Compile Include="ParserClasses\RootNode.cs" />
@@ -70,7 +72,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="LICENSE" />
-    <None Include="page.htm.hix">
+    <None Include="page.js.hix">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="README.md" />
