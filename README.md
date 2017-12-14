@@ -48,6 +48,7 @@ This are the **Properties** functions:
  * **`[[database.name]]`** - Get the database name from the config.json file. 
  * **`[[table.name]]`** - Get the table name from the Table in course.
  * **`[[column.name]]`** - Get the column name from the Column in course.
+ * **`[[column.name].[lower]]`** - Get the column name from the Column in course and Lowercase the first letter.
  * **`[[column.type]]`** - Get the column type from the Column in course.
 
 ##Column types
