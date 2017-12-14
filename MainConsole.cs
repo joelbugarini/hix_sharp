@@ -86,6 +86,7 @@ namespace hix
 
                                 dataColumnNode += columnNode.Scheme.Replace(
                                         "[[column.name]]", column.Name).Replace(
+                                        "[[column.name].[lower]]", LowercaseFirst(column.Name)).Replace(
                                         "[[column.type]]", column.Type).Replace(
                                         "[[project.name]]", config.Project).Replace(
                                         "[[database.name]]", config.Database);
@@ -99,6 +100,7 @@ namespace hix
                                 {
                                     dataColumnNode += columnNode.Scheme.Replace(
                                             "[[column.name]]", column.Name).Replace(
+                                            "[[column.name].[lower]]", LowercaseFirst(column.Name)).Replace(
                                             "[[column.type]]", column.Type).Replace(
                                             "[[project.name]]", config.Project).Replace(
                                             "[[database.name]]", config.Database);
@@ -225,6 +227,18 @@ namespace hix
             }
             return text.Substring(0, pos) + replace + text.Substring(pos + search.Length);
         }
+
+        public static string LowercaseFirst(string s)
+        {
+            // Check for empty string.
+            if (string.IsNullOrEmpty(s))
+            {
+                return string.Empty;
+            }
+            // Return char and concat substring.
+            return char.ToLower(s[0]) + s.Substring(1);
+        }
+
         public static void Exit(string text)
         {
             Console.Write(text);

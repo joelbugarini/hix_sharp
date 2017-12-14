@@ -72,55 +72,77 @@ namespace hix
             //    this.ColumnNodes.Add(columnNode);
             //}
             //var op = content.IndexOf("[[column]]");
-            while (content.IndexOf("[[column]]") >= 0)
-            {
+            //////while (content.IndexOf("[[column]]") >= 0)
+            //////{
 
-                int head = content.IndexOf("[[column]]") + "[[column]]".Length;
-                int tail = content.IndexOf("[[/column]]");
+            //////    int head = content.IndexOf("[[column]]") + "[[column]]".Length;
+            //////    int tail = content.IndexOf("[[/column]]");
 
-                copyContent = content.Substring(head, tail - head);
+            //////    copyContent = content.Substring(head, tail - head);
 
-                int replaceHead = content.IndexOf("[[column]]");
-                int replaceTail = content.IndexOf("[[/column]]") + "[[/column]]".Length;
+            //////    int replaceHead = content.IndexOf("[[column]]");
+            //////    int replaceTail = content.IndexOf("[[/column]]") + "[[/column]]".Length;
 
-                content = ReplaceFirst(content, content.Substring(replaceHead, replaceTail - replaceHead), "[[columns]]");
-                this.Scheme = content;
-                //Console.WriteLine(content);
-                ColumnNode columnNode = new ColumnNode();
-                columnNode.Create(copyContent, "notype");
-                this.ColumnNodes.Add(columnNode);
-                //TableNodes.Add(content.Substring(head, content.Length - head));
-            }
+            //////    content = ReplaceFirst(content, content.Substring(replaceHead, replaceTail - replaceHead), "[[columns]]");
+            //////    this.Scheme = content;
+            //////    //Console.WriteLine(content);
+            //////    ColumnNode columnNode = new ColumnNode();
+            //////    columnNode.Create(copyContent, "notype");
+            //////    this.ColumnNodes.Add(columnNode);
+            //////    //TableNodes.Add(content.Substring(head, content.Length - head));
+            //////}
 
             //content = content.Replace("[[columns]]","");
             copyContent = content;
             string originalContent = content;
             
-            foreach (Match r in Regex.Matches(originalContent, @"\[\[(column )\w+\]\]"))
+            foreach (Match r in Regex.Matches(originalContent, @"(\[\[(column )\w+\]\]|\[\[(column)\]\])"))
             {
-                string type = r.Value.Split(' ')[1].Replace("[[", "").Replace("]]", "");
+                if (r.Value.Split(' ').Length > 1)
+                {
+                    string type = r.Value.Split(' ')[1].Replace("[[", "").Replace("]]", "");
 
-                var re = Regex.Matches(originalContent, @"\[\[\/(column "+type+@")+\]\]");
-                int head = r.Index + r.Value.Length;
-                int tail = re[0].Index;
+                    var re = Regex.Matches(originalContent, @"\[\[\/(column " + type + @")+\]\]");
+                    int head = r.Index + r.Value.Length;
+                    int tail = re[0].Index;
 
-                int ct = 0;
-                while(tail - head < 0) {
-                    ct++;
-                    tail = re[ct].Index;
+                    int ct = 0;
+                    while (tail - head < 0)
+                    {
+                        ct++;
+                        tail = re[ct].Index;
+                    }
+
+                    copyContent = originalContent.Substring(head, tail - head);
+
+                    int replaceHead = r.Index;
+                    int replaceTail = re[ct].Index + re[ct].Value.Length;
+
+                    content = ReplaceFirst(content, originalContent.Substring(replaceHead, replaceTail - replaceHead), "[[columns]]");
+                    this.Scheme = content;
+
+                    ColumnNode columnNode = new ColumnNode();
+                    columnNode.Create(copyContent, type);
+                    this.ColumnNodes.Add(columnNode);
                 }
+                else {
+                    int head = content.IndexOf("[[column]]") + "[[column]]".Length;
+                    int tail = content.IndexOf("[[/column]]");
 
-                copyContent = originalContent.Substring(head, tail - head);
+                    copyContent = content.Substring(head, tail - head);
 
-                int replaceHead = r.Index;
-                int replaceTail = re[ct].Index + re[ct].Value.Length;
+                    int replaceHead = content.IndexOf("[[column]]");
+                    int replaceTail = content.IndexOf("[[/column]]") + "[[/column]]".Length;
 
-                content = ReplaceFirst(content, originalContent.Substring(replaceHead, replaceTail - replaceHead), "[[columns]]");
-                this.Scheme = content;             
+                    content = ReplaceFirst(content, content.Substring(replaceHead, replaceTail - replaceHead), "[[columns]]");
+                    this.Scheme = content;
+                    //Console.WriteLine(content);
+                    ColumnNode columnNode = new ColumnNode();
+                    columnNode.Create(copyContent, "notype");
+                    this.ColumnNodes.Add(columnNode);
+                    //TableNodes.Add(content.Substring(head, content.Length - head));
 
-                ColumnNode columnNode = new ColumnNode();
-                columnNode.Create(copyContent, type);
-                this.ColumnNodes.Add(columnNode);
+                }
             }
         }
 

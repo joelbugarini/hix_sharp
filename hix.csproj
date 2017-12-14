@@ -72,7 +72,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="LICENSE" />
-    <None Include="page.js.hix">
+    <None Include="page.ts.hix">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="README.md" />

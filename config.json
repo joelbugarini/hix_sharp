@@ -1,8 +1,8 @@
-﻿ {
-    "Project": "LaboratoryDB",
-    "Database": "LaboratoryDB",
-    "Server": "localhost\SQLExpress",
-    "WinAuth": "false",
-    "User": "sa",
-    "Password": "rareware"
+﻿{
+  "Project": "ObservacionesWeb",
+  "Database": "ObservacionesWebDB",
+  "Server": ".\SQLExpress",
+  "WinAuth": "true",
+  "User": "",
+  "Password": ""
 }
