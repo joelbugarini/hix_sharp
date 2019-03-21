@@ -139,6 +139,15 @@ namespace hix
             }
         }
 
+        public void GetTablesConsole(Config config) {
+            
+            List<Table> tables = GetTables(config);
+            Console.WriteLine("Database " + config.Database+ "\nTables:");
+            foreach (Table t in tables) {
+                Console.WriteLine("   "+ t.Name);
+            }
+        }
+
         //Print Types per Table
         public void GetTypesTable(Config config, string TableName)
         {

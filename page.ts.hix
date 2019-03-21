@@ -1,183 +1,171 @@
-[<][[table]]import * as ko from "knockout";
-import * as mapper from "knockout.mapping";
-import * as $ from "jquery";
-import * as moment from "moment";
-import axios from "axios";
-import 'datatables.net';
-import "Handlers";
-import 'chosen-js';
-import { contains } from "Utilities";
+[<][[table]]$(document).ready(function () {
+    var vm = {};
 
-declare var user: IUser;
-declare var window: any;
-declare var vm: any;
-
-export default class [[table.name]] {
-    Table: DataTables.Api;
-    SelectedId: KnockoutObservable<number>;
-
-    [[column int]]New[[column.name]] : KnockoutObservable<number>;
-    [[/column int]][[column nvarchar]]New[[column.name]] : KnockoutObservable<string>;
-    [[/column nvarchar]][[column varchar]]New[[column.name]] : KnockoutObservable<string>;
-    [[/column varchar]][[column bit]]New[[column.name]] : KnockoutObservable<boolean>;
-    [[/column bit]][[column datetime]]New[[column.name]] : KnockoutObservable<string>;
-    [[/column datetime]][[column float]]New[[column.name]] : KnockoutObservable<number>;
-    [[/column float]][[column datetimeoffset]]New[[column.name]] : KnockoutObservable<number>;
-    [[/column datetimeoffset]][[column varbinary]]New[[column.name]] : KnockoutObservable<number[]>;
-    [[/column varbinary]][[column decimal]]New[[column.name]] : KnockoutObservable<number[]>;
-    [[/column decimal]]
-
-    Display: KnockoutObservable<boolean>;
-    MsgHeader: KnockoutObservable<string>;
-    ViewState: KnockoutObservable<string>;
-
-
-    constructor() {
-
-        let that = this;
-
-        this.Table = $('#_[[table.name]]').DataTable({
-            ajax: {
-                url: '/api/[[table.name]]',
-                dataSrc: ''
-            },
-            order: [],
-            language: {
-                "url": "/Content/WP/js/lang.es_MX.js"
-            },
-            columns: [
-                [[column]]{ data: "[[column.name]]" },
-                [[/column]]
-            ]
-
-        });
-        $('#[[table.name]]').removeClass('display').addClass('table table-striped table-hover table-bordered table-condensed');
-
-        this.SelectedId = ko.observable(0);
-
-        [[column int]]this.New[[column.name]] = ko.observable(0);
-        [[/column int]][[column nvarchar]]this.New[[column.name]] = ko.observable('');
-        [[/column nvarchar]][[column varchar]]this.New[[column.name]] = ko.observable('');
-        [[/column varchar]][[column bit]]this.New[[column.name]] = ko.observable(false);
-        [[/column bit]][[column datetime]]this.New[[column.name]] = ko.observable('');
-        [[/column datetime]][[column float]]this.New[[column.name]] = ko.observable(0);
-        [[/column float]][[column datetimeoffset]]this.New[[column.name]] = ko.observable(0);
-        [[/column datetimeoffset]][[column varbinary]]this.New[[column.name]] = ko.observable([]);
-        [[/column varbinary]][[column decimal]]this.New[[column.name]] = ko.observable(0);
-        [[/column decimal]]
-        this.Display = ko.observable(false);
-        this.MsgHeader = ko.observable('');
-        this.ViewState = ko.observable('Read');
-
-
-        let vm = window.vm;
-        window.vm = this;
-
-        ko.applyBindings(this, $("#main")[0]);
-
-        let thot:[[table.name]] = this;
-        $('#tipoauditorias tbody').on('click', 'tr', function () {
-            var data:any = thot.Table.row(this).data();
-            thot.SelectedId(data.id);
-            [[column]]thot.New[[column.name]](data.[[column.name].[lower]]);
+    vm.Table = $('#[[table.name]]_').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: '/[[table.name]]ServerSide/SearchAction',
+            type: 'POST'
+        },
+        scrollX: true,
+        order: [],
+        columns: [
+            [[column].[ignore=Id]]{ data: "[[column.name]]" },
             [[/column]]
-            thot.Display(true);
-            thot.MsgHeader("Editar [[table.name]]");
+        ]
+    });
+    $('#[[table.name]]_').removeClass('display').addClass('table table-striped table-hover table-condensed');
 
+    vm.SelectedId = ko.observable(0);
+
+    [[column int]]vm.New[[column.name]] = ko.observable(0);
+    [[/column int]][[column nchar].[ignore=_Sample]]vm.[[column.name]]Selected = ko.observable(0);
+    vm.[[column.name]] = ko.observable([]);
+    vm.[[column.name]]Load = ko.computed(() => {
+        axios.get('/api/[[column.name]]').then((res) => {
+            vm.[[column.name]](res.data);
         });
+    }).extend({ async: true });
+    vm.[[column.name]]Change = ko.computed(() => {
+        vm.[[column.name]]Selected();
+    });
+    [[/column nchar]][[column varchar]]vm.New[[column.name]] = ko.observable('');
+    [[/column varchar]][[column bit]]vm.New[[column.name]] = ko.observable(false);
+    [[/column bit]][[column datetime]]vm.New[[column.name]] = ko.observable('');
+    [[/column datetime]][[column float]]vm.New[[column.name]] = ko.observable(0);
+    [[/column float]][[column datetimeoffset]]vm.New[[column.name]] = ko.observable(0);
+    [[/column datetimeoffset]][[column varbinary]]vm.New[[column.name]] = ko.observable([]);
+    [[/column varbinary]][[column decimal]]vm.New[[column.name]] = ko.observable(0);
+    [[/column decimal]]
+    vm.Display = ko.observable(false);
+    vm.MsgHeader = ko.observable('');
+    vm.ViewState = ko.observable('Read');
+
+    $('#[[table.name]]_ tbody').on('click', 'tr', function () {
+        var data = vm.Table.row(this).data();
+            axios.get(`/api/[[table.name].[head]]/${data.Id}`)
+            .then((res) => {
+                vm.SelectedId(res.data.Id);
+
+                [[column int]]vm.New[[column.name]](res.data.[[column.name]]);
+                [[/column int]][[column nchar]]vm.[[column.name]]Selected(res.data.[[column.name]]Id);
+                [[/column nchar]][[column varchar]]vm.New[[column.name]](res.data.[[column.name]]);
+                [[/column varchar]][[column bit]]vm.New[[column.name]](res.data.[[column.name]]);
+                [[/column bit]][[column datetime]]vm.New[[column.name]](res.data.[[column.name]]);
+                [[/column datetime]][[column float]]vm.New[[column.name]](res.data.[[column.name]]);
+                [[/column float]][[column datetimeoffset]]vm.New[[column.name]](res.data.[[column.name]]);
+                [[/column datetimeoffset]][[column varbinary]]vm.New[[column.name]](res.data.[[column.name]]);
+                [[/column varbinary]][[column decimal]]vm.New[[column.name]](res.data.[[column.name]]);
+                [[/column decimal]]
+                
+                vm.ViewState('Read');
+                vm.Display(true);
+                vm.MsgHeader("[[table.name]] detail");
+            })
+            .catch(res => console.log(res));
+    });
+
+    vm.New = function() {
+		vm.Clean();
+        vm.Display(true);
+        vm.ViewState('New');
+        vm.MsgHeader('Add [[table.name]]');
     }
 
-    Nuevo() {
-        this.Display(true);
-        this.ViewState('New');
-        this.MsgHeader('Agregar [[table.name]]');
+    vm.Edit = function() {
+        vm.ViewState('Edit');
     }
 
-    Editar() {
-        this.ViewState('Edit');
+    vm.Cancel = function() {
+        vm.ViewState('Read');
+        vm.Clean();
+        vm.Display(false);
     }
 
-    Cancel() {
-        this.ViewState('Read');
-        this.Display(false);
-    }
-
-    Save() {
-        if (this.SelectedId() == 0) {
-            axios.post("/api/[[table.name]]", {
-                [[column]][[column.name]]: this.New[[column.name]](),
-                [[/column]]
-                CreatedBy: user.name,
-                ModifiedBy: user.name,
-                Created: new Date ,
-                Modified: new Date
+    vm.Save = function() {
+        if (vm.SelectedId() == 0) {
+            axios.post("/api/[[table.name].[head]", {
+                 [[column int]][[column.name]]: vm.New[[column.name]](),
+                [[/column int]][[column nchar]][[column.name]]Id: vm.[[column.name]]Selected(),
+                [[/column nchar]][[column varchar]][[column.name]]: vm.New[[column.name]](),
+                [[/column varchar]][[column bit]][[column.name]]: vm.New[[column.name]](),
+                [[/column bit]][[column datetime]][[column.name]]: moment(vm.New[[column.name]](), "MM/DD/YYYY").format(),
+                [[/column datetime]][[column float]][[column.name]]: vm.New[[column.name]](),
+                [[/column float]][[column datetimeoffset]][[column.name]]: vm.New[[column.name]](),
+                [[/column datetimeoffset]][[column varbinary]][[column.name]]: vm.New[[column.name]](),
+                [[/column varbinary]][[column decimal]][[column.name]]: vm.New[[column.name]](),
+                [[/column decimal]]
             }).then(() => {
-                this.Display(false);
-                [[column int]]this.New[[column.name]](0);
-        [[/column int]][[column nvarchar]]this.New[[column.name]]('');
-        [[/column nvarchar]][[column varchar]]this.New[[column.name]]('');
-        [[/column varchar]][[column bit]]this.New[[column.name]](false);
-        [[/column bit]][[column datetime]]this.New[[column.name]]('');
-        [[/column datetime]][[column float]]this.New[[column.name]](0);
-        [[/column float]][[column datetimeoffset]]this.New[[column.name]](0);
-        [[/column datetimeoffset]][[column varbinary]]this.New[[column.name]]([]);
-        [[/column varbinary]][[column decimal]]this.New[[column.name]](0);
-        [[/column decimal]]
-                this.ViewState('Read');
-                this.Reload();
+                vm.Display(false);
+                vm.Clean();
+                vm.ViewState('Read');
+                vm.Reload();
 
             })
-                .catch((error) => { swal("No se pudo agregar el [[table.name]]"); });
+                .catch((error) => { swal("[[table.name]] was not been stored into the database"); });
         } else {
-            axios.put("/api/TipoAuditoria", {
-                [[column]][[column.name]]: this.New[[column.name]](),
-                [[/column]]
-                ModifiedBy: user.name,
-                Created: new Date ,
-                Modified: new Date
+            axios.put("/api/[[table.name].[head]]", {
+                [[column int]][[column.name]]: vm.New[[column.name]](),
+                [[/column int]][[column nchar]][[column.name]]Id: vm.[[column.name]]Selected(),
+                [[/column nchar]][[column varchar]][[column.name]]: vm.New[[column.name]](),
+                [[/column varchar]][[column bit]][[column.name]]: vm.New[[column.name]](),
+                [[/column bit]][[column datetime]][[column.name]]: moment(vm.New[[column.name]](), "MM/DD/YYYY").format(),
+                [[/column datetime]][[column float]][[column.name]]: vm.New[[column.name]](),
+                [[/column float]][[column datetimeoffset]][[column.name]]: vm.New[[column.name]](),
+                [[/column datetimeoffset]][[column varbinary]][[column.name]]: vm.New[[column.name]](),
+                [[/column varbinary]][[column decimal]][[column.name]]: vm.New[[column.name]](),
+                [[/column decimal]]
             }).then(() => {
-                this.Display(false);
-                this.SelectedId(0);
-                [[column int]]this.New[[column.name]](0);
-        [[/column int]][[column nvarchar]]this.New[[column.name]]('');
-        [[/column nvarchar]][[column varchar]]this.New[[column.name]]('');
-        [[/column varchar]][[column bit]]this.New[[column.name]](false);
-        [[/column bit]][[column datetime]]this.New[[column.name]]('');
-        [[/column datetime]][[column float]]this.New[[column.name]](0);
-        [[/column float]][[column datetimeoffset]]this.New[[column.name]](0);
-        [[/column datetimeoffset]][[column varbinary]]this.New[[column.name]]([]);
-        [[/column varbinary]][[column decimal]]this.New[[column.name]](0);
-        [[/column decimal]]
-                this.Reload();
-                this.ViewState('Read');
+                vm.Display(false);
+                vm.Clean();
+                vm.Reload();
+                vm.ViewState('Read');
 
             })
-                .catch(() => { swal("No se pudo actualizar el [[table.name]]"); });
+                .catch(() => { swal("[[table.name]] was not been stored into the database"); });
         }
     }
-    Delete() {
-        axios.delete("/api/[[table.name]]/" + this.SelectedId()).then(() => {
-            this.Display(false);
-            this.SelectedId(0);
-            [[column int]]this.New[[column.name]](0);
-        [[/column int]][[column nvarchar]]this.New[[column.name]]('');
-        [[/column nvarchar]][[column varchar]]this.New[[column.name]]('');
-        [[/column varchar]][[column bit]]this.New[[column.name]](false);
-        [[/column bit]][[column datetime]]this.New[[column.name]]('');
-        [[/column datetime]][[column float]]this.New[[column.name]](0);
-        [[/column float]][[column datetimeoffset]]this.New[[column.name]](0);
-        [[/column datetimeoffset]][[column varbinary]]this.New[[column.name]]([]);
-        [[/column varbinary]][[column decimal]]this.New[[column.name]](0);
+    vm.Delete = function() {
+        swal({
+            title: "Are you sure to delete [[table.name]]?",
+            text: "It will be not possible to restore it.",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#DD6B55",
+            confirmButtonText: "Delete",
+            cancelButtonText: "Cancel",
+            closeOnConfirm: true
+        },
+            () => {
+                axios.delete("/api/[[table.name].[head]]/" + vm.SelectedId()).then(() => {
+                    vm.Display(false);
+                    vm.SelectedId(0);
+                    vm.Clean();
+                    vm.Reload();
+
+                    }).catch(() => { swal("[[table.name]] was not been stored into the database"); });
+            });
+    }
+
+    vm.Clean = function(){
+        vm.SelectedId(0);
+        [[column int]]vm.New[[column.name]](0);
+        [[/column int]][[column nchar]]vm.[[column.name]]Selected(0);
+        [[/column nchar]][[column varchar]]vm.New[[column.name]]('');
+        [[/column varchar]][[column bit]]vm.New[[column.name]](false);
+        [[/column bit]][[column datetime]]vm.New[[column.name]]('');
+        [[/column datetime]][[column float]]vm.New[[column.name]](0);
+        [[/column float]][[column datetimeoffset]]vm.New[[column.name]](0);
+        [[/column datetimeoffset]][[column varbinary]]vm.New[[column.name]]([]);
+        [[/column varbinary]][[column decimal]]vm.New[[column.name]](0);
         [[/column decimal]]
-            this.Reload();
-
-        })
-            .catch(() => { swal("No se pudo eliminar el [[table.name]]"); });
     }
 
-    Reload() {
-        this.Table.ajax.url('/api/[[table.name]]/').load();
-        this.Table.search('').draw();
+    vm.Reload = function() {
+        vm.Table.ajax.reload();
+        vm.Table.search('').draw(false);
     }
-}
-interface IUser { email: string; name: string; roles: Array<string>; Id: string };[[/table]][>]
+
+     ko.applyBindings(vm, $("#main")[0]);
+});[[/table]][>]

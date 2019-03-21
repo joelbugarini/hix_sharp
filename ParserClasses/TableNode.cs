@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -96,13 +96,16 @@ namespace hix
             copyContent = content;
             string originalContent = content;
             
-            foreach (Match r in Regex.Matches(originalContent, @"(\[\[(column )\w+\]\]|\[\[(column)\]\])"))
+            foreach (Match r in Regex.Matches(originalContent, @"(\[\[(column )\w+\](.\[ignore=[a-zA-Z,_0-9]+\])?\]|\[\[(column)\](.\[ignore=[a-zA-Z,_0-9]+\])?\])"))
             {
+                List<string> ignoreds = GetIgnoreds(r.Value);
+                var match = r.Value;
                 if (r.Value.Split(' ').Length > 1)
                 {
-                    string type = r.Value.Split(' ')[1].Replace("[[", "").Replace("]]", "");
+                    string col = Regex.Match(r.Value, @"( )\w+\](.\[ignore=[a-zA-Z,_0]+\]\.)?").Value;
+                    string type = TextBetween(col, " ", "]");
 
-                    var re = Regex.Matches(originalContent, @"\[\[\/(column " + type + @")+\]\]");
+                    var re = Regex.Matches(originalContent, @"\[\[\/(column " + type + @")+\](.\[ignore=[a-zA-Z,_0-9]+\])?\]");
                     int head = r.Index + r.Value.Length;
                     int tail = re[0].Index;
 
@@ -122,28 +125,53 @@ namespace hix
                     this.Scheme = content;
 
                     ColumnNode columnNode = new ColumnNode();
-                    columnNode.Create(copyContent, type);
+                    columnNode.Create(copyContent, type, ignoreds);
                     this.ColumnNodes.Add(columnNode);
                 }
                 else {
-                    int head = content.IndexOf("[[column]]") + "[[column]]".Length;
+                    //\[\[(column)\](.\[ignore=[a-zA-Z,_0-9]+\])?\]
+                    string columnToken = Regex.Match(content, @"\[\[(column)\](.\[ignore=[a-zA-Z,_0-9]+\])?\]").Value;
+                    int head = content.IndexOf(columnToken) + columnToken.Length;
                     int tail = content.IndexOf("[[/column]]");
 
                     copyContent = content.Substring(head, tail - head);
 
-                    int replaceHead = content.IndexOf("[[column]]");
+                    int replaceHead = content.IndexOf(columnToken);
                     int replaceTail = content.IndexOf("[[/column]]") + "[[/column]]".Length;
 
                     content = ReplaceFirst(content, content.Substring(replaceHead, replaceTail - replaceHead), "[[columns]]");
                     this.Scheme = content;
                     //Console.WriteLine(content);
                     ColumnNode columnNode = new ColumnNode();
-                    columnNode.Create(copyContent, "notype");
+                    columnNode.Create(copyContent, "notype", ignoreds);
                     this.ColumnNodes.Add(columnNode);
                     //TableNodes.Add(content.Substring(head, content.Length - head));
 
                 }
             }
+        }
+
+        public bool HasIgnored(string text)
+        {
+            return text.Contains("ignore=");
+        }
+
+        public List<string> GetIgnoreds(string text)
+        {
+            if (HasIgnored(text))
+            {
+                return TextBetween(text,"ignore=","]]").Split(',').ToList();
+            }
+            else {
+                return new List<string>();
+            }            
+        }
+
+        public string TextBetween(string St, string from, string to) {
+            int pFrom = St.IndexOf(from) + from.Length;
+            int pTo = St.LastIndexOf(to);
+
+            return St.Substring(pFrom, pTo - pFrom);
         }
 
         public string GetAllColums()

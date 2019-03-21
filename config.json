@@ -1,7 +1,7 @@
 ﻿{
-  "Project": "ObservacionesWeb",
-  "Database": "ObservacionesWebDB",
-  "Server": ".\SQLExpress",
+  "Project": "Laboratory",
+  "Database": "Test",
+  "Server": ".\SQLEXPRESS",
   "WinAuth": "true",
   "User": "",
   "Password": ""

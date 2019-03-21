@@ -54,9 +54,15 @@ namespace hix
             set { db = value; }
         }
 
-        public void Create(string text, string type)
+        public List<string> Ignored { get; set; }
+
+        public void Create(string text, string type, List<string> ignoreds)
         {
             this.Type = type;
+
+            if(ignoreds != null)
+                this.Ignored = ignoreds;
+
             this.Original = text;
             this.Content = text.Replace("[[column]]", "").Replace("[[/column]]", "");
             this.Scheme = content;

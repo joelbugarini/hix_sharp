@@ -40,6 +40,7 @@ namespace hix
                     cn.GetTypes(cn.ReadConfig());
                     break;
                 case "generate": Generate(arguments); break;
+                case "tables": cn.GetTablesConsole(cn.ReadConfig()); break;
                 case "help": Exit(help.text); break;
                 case "man": Exit(help.text); break;
                 default: break;
@@ -83,13 +84,16 @@ namespace hix
                         {
                             foreach (Column column in table.Columns)
                             {
-
-                                dataColumnNode += columnNode.Scheme.Replace(
+                                if (!columnNode.Ignored.Contains(column.Name))
+                                {
+                                    dataColumnNode += columnNode.Scheme.Replace(
                                         "[[column.name]]", column.Name).Replace(
                                         "[[column.name].[lower]]", LowercaseFirst(column.Name)).Replace(
+                                        "[[column.name].[head]]", column.Name.Substring(1)).Replace(
                                         "[[column.type]]", column.Type).Replace(
                                         "[[project.name]]", config.Project).Replace(
                                         "[[database.name]]", config.Database);
+                                }
                             }
                         }
                         else
@@ -98,19 +102,24 @@ namespace hix
                             {
                                 if (columnNode.Type == column.Type)
                                 {
-                                    dataColumnNode += columnNode.Scheme.Replace(
-                                            "[[column.name]]", column.Name).Replace(
-                                            "[[column.name].[lower]]", LowercaseFirst(column.Name)).Replace(
-                                            "[[column.type]]", column.Type).Replace(
-                                            "[[project.name]]", config.Project).Replace(
-                                            "[[database.name]]", config.Database);
-                                }
+                                    if (!columnNode.Ignored.Contains(column.Name))
+                                    {
+                                        dataColumnNode += columnNode.Scheme.Replace(
+                                                "[[column.name]]", column.Name).Replace(
+                                                "[[column.name].[lower]]", LowercaseFirst(column.Name)).Replace(
+                                                "[[column.name].[head]]", column.Name.Substring(1)).Replace(
+                                                "[[column.type]]", column.Type).Replace(
+                                                "[[project.name]]", config.Project).Replace(
+                                                "[[database.name]]", config.Database);
+                                    }
+                                }                                
                             }
                         }
 
 
                         table.Content = ReplaceFirst(table.Content, "[[columns]]", dataColumnNode).Replace(
                                 "[[table.name]]", table.Name).Replace(
+                                "[[table.name].[head]]", table.Name.Substring(1)).Replace(
                                 "[[project.name]]", config.Project).Replace(
                                 "[[database.name]]", config.Database);
 

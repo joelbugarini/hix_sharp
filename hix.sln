@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.329
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "hix", "hix.csproj", "{8A57C221-4943-4C79-8407-017E25B134B8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "hix.include", "..\hix.include\hix.include.csproj", "{6A0B7A8D-A53F-43F3-9631-C7205CB38186}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +17,15 @@ Global
 		{8A57C221-4943-4C79-8407-017E25B134B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8A57C221-4943-4C79-8407-017E25B134B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8A57C221-4943-4C79-8407-017E25B134B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A0B7A8D-A53F-43F3-9631-C7205CB38186}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A0B7A8D-A53F-43F3-9631-C7205CB38186}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A0B7A8D-A53F-43F3-9631-C7205CB38186}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A0B7A8D-A53F-43F3-9631-C7205CB38186}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DB88A0D3-74DA-47E3-83CA-B5D9BF7FB1DC}
 	EndGlobalSection
 EndGlobal
