@@ -46,9 +46,9 @@ namespace hix
             get { return column; }
             set { column = value; }
         }
-        private Database db;
+        private Schema db;
 
-        internal Database Db
+        internal Schema Db
         {
             get { return db; }
             set { db = value; }

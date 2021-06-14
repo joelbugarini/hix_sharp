@@ -38,7 +38,7 @@ namespace hix
             set { scheme = value; }
         }
 
-        public void Create(string filename, Database db)
+        public void Create(string filename, Schema db)
         {
             ReadOriginal(filename);
             ReadContent(original);

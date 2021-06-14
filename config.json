@@ -1,8 +1,4 @@
 ﻿{
-  "Project": "Laboratory",
-  "Database": "Test",
-  "Server": ".\SQLEXPRESS",
-  "WinAuth": "true",
-  "User": "",
-  "Password": ""
+  "Project": "Laboratory", 
+  "Models": "Models"
 }

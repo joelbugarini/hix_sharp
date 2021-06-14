@@ -26,26 +26,18 @@ namespace hix
             string[] arguments = ParseArgs(args);
             ParseOpts(args);
 
-            if (arguments.Length <= 0) Exit("hix code generator");
+            if (arguments.Length <= 0) Exit("hix code generator\n");
             Config cn = new Config();
 
 
             switch (arguments[0])
             {
-                case "typesOf":
-                    try{   cn.GetTypesTable(cn.ReadConfig(), args[1]);}
-                    catch (Exception ex) { Exit("error: '" + args[1] + "' did not match any table."); }
-                    break;
-                case "types":
-                    cn.GetTypes(cn.ReadConfig());
-                    break;
                 case "generate": Generate(arguments); break;
                 case "tables": cn.GetTablesConsole(cn.ReadConfig()); break;
                 case "help": Exit(help.text); break;
                 case "man": Exit(help.text); break;
                 default: break;
-            }
-         
+            }            
         }
 
         [STAThread]
@@ -56,11 +48,11 @@ namespace hix
             Config config = new Config().ReadConfig();
 
             //Get the DB schema
-            Console.WriteLine("hix generator is connecting to database " + config.Server + "\\" + config.Database);
+            Console.WriteLine("hix generator is reading from the path " + config.Models);
 
             //try
             //{
-            Database db = config.GenerateDb(config);
+            Schema db = config.GenerateDb(config);
 
             //Read File
 
@@ -92,7 +84,7 @@ namespace hix
                                         "[[column.name].[head]]", column.Name.Substring(1)).Replace(
                                         "[[column.type]]", column.Type).Replace(
                                         "[[project.name]]", config.Project).Replace(
-                                        "[[database.name]]", config.Database);
+                                        "[[database.name]]", config.Project);
                                 }
                             }
                         }
@@ -110,7 +102,7 @@ namespace hix
                                                 "[[column.name].[head]]", column.Name.Substring(1)).Replace(
                                                 "[[column.type]]", column.Type).Replace(
                                                 "[[project.name]]", config.Project).Replace(
-                                                "[[database.name]]", config.Database);
+                                                "[[database.name]]", config.Project);
                                     }
                                 }                                
                             }
@@ -119,9 +111,10 @@ namespace hix
 
                         table.Content = ReplaceFirst(table.Content, "[[columns]]", dataColumnNode).Replace(
                                 "[[table.name]]", table.Name).Replace(
-                                "[[table.name].[head]]", table.Name.Substring(1)).Replace(
+                                "[[table.name].[lower]]", LowercaseFirst(table.Name)).Replace(
+                                "[[table.name].[init]]", table.Name.Substring(0,table.Name.Length-1)).Replace(
                                 "[[project.name]]", config.Project).Replace(
-                                "[[database.name]]", config.Database);
+                                "[[database.name]]", config.Project);
 
                     }
                 }
@@ -159,7 +152,7 @@ namespace hix
                 }
                 document = rootNode.Scheme.Replace("[[table.container]]", document)
                                           .Replace("[[project.name]]", config.Project)
-                                          .Replace("[[database.name]]", config.Database);
+                                          .Replace("[[database.name]]", config.Project);
 
                 string file = Path.GetFileNameWithoutExtension(arguments[1]);
                 string extension = Path.GetExtension(arguments[1]);
