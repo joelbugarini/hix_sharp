@@ -4,7 +4,7 @@ Flexible code generator that grows with you and your project.
 Some generators lock you in some way or another, in some cases generators don't fit your architectural needs, but with hix, you are in control. The engine takes a model and a template (both can be modified) to generate an output file. 
 
 To understand hix, first we need to understand the parts that move it. 
-* First we have the `templates`, that are text files with a specific syntax (more on this later) used by the engine.
+* First we have the code `templates`, that are text files with a specific syntax (more on this later) used by the engine.
 * Then we have the `models`, that are just json files with the object definition.
 * At last we have the `generator`, or hix as we called, the cli used to interact with the engine.
 
