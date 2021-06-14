@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Text;
-using Json;
-using Newtonsoft.Json;
+using Jsonite;
 
 namespace hix
 {
@@ -14,30 +13,30 @@ namespace hix
         public string Models { get; set; }
 
         //Conect to Database
-        public Schema GenerateDb(Config config)
+        public Schema GenerateSchema(Config config)
         {
             Schema db = new Schema();
             db.Name = config.Project + "_Schema";
-            db.Tables = GetTables(config);
-            foreach (Table table in db.Tables)
+            db.Models = GetModels(config);
+            foreach (Model table in db.Models)
             {
-                table.Columns = GetColumns(config, table.Name.Replace(".json", ""));
+                table.Props = GetProperties(config, table.Name.Replace(".json", ""));
             }
 
             return db;
         }
 
         //Fill Table
-        public List<Table> GetTables(Config config)
+        public List<Model> GetModels(Config config)
         {
-            List<Table> Tables = new List<Table>();
+            List<Model> Tables = new List<Model>();
 
             DirectoryInfo d = new DirectoryInfo(config.Models);
             FileInfo[] Files = d.GetFiles("*.json");
 
             foreach (FileInfo file in Files)
             {
-                Table table = new Table();
+                Model table = new Model();
                 table.Name = file.Name.Replace(".json","");
                 Tables.Add(table);
             }
@@ -46,21 +45,39 @@ namespace hix
         }
 
         //Fill Columns
-        public List<Column> GetColumns(Config config, string TableName)
+        public List<Property> GetProperties(Config config, string TableName)
         {
            var fileName = TableName + ".json";
-           List<Column> Columns = new List<Column>();
+           List<Property> Columns = new List<Property>();
            string allText = File.ReadAllText(Path.Combine(config.Models, fileName));
-           Columns = JsonConvert.DeserializeObject< List<Column>>(allText);
+
+            var res = Json.Deserialize(allText);
+
+            foreach (JsonObject item in res as JsonArray) 
+            {
+                object n = null;
+                if (!item.TryGetValue("Name", out n))
+                    Console.WriteLine("Please, provide 'Name' for each property");
+
+                object t = null;
+                if (!item.TryGetValue("Type", out t))
+                    Console.WriteLine("Please, provide 'Type' for each property");
+
+                if(n == null || t == null)
+                    Console.WriteLine("Error found in: " + item.ToString());
+
+                Columns.Add(new Property() { Name = n as string, Type = t as string });
+            }
+
 
            return Columns;
         }
 
 
-        public void GetTablesConsole(Config config)
+        public void GetModelsConsole(Config config)
         {
 
-            List<Table> Tables = new List<Table>();
+            List<Model> Tables = new List<Model>();
 
             DirectoryInfo d = new DirectoryInfo(config.Models);
             FileInfo[] Files = d.GetFiles("*.json");
@@ -75,42 +92,20 @@ namespace hix
         //Read the config file
         public Config ReadConfig()
         {
-            Config conf = new Config();
             string text = System.IO.File.ReadAllText("config.json");
-            string[] t = text
-                .Replace("{", "")
-                .Replace("}", "")
-                .Replace("\"", "")
-                .Replace("\n", "")
-                .Replace("\r", "")
-                .Replace(" ", "")
-                .Split(',');
-            foreach (string prop in t)
-            {
-                string val = "";
-                if (prop.Split(':').Length > 2)
-                {
-                    string[] tmp = Util.Tail(prop.Split(':'));
-                    val = string.Join(":", tmp);
-                }
-                else
-                {
-                    val = prop.Split(':').Length == 2 ? prop.Split(':')[1] : "";
-                }
 
-                switch (prop.Split(':')[0])
-                {
-                    case "Project":
-                        conf.Project = val;
-                        break;
-                    case "Models":
-                        conf.Models = val;
-                        break;
+            JsonObject item = Json.Deserialize(text) as JsonObject;
 
-                }
+            if (!item.TryGetValue("Project", out object p))
+                Console.WriteLine("Please, provide 'Project' in the config file");
 
-            }
-            return conf;
+            if (!item.TryGetValue("Models", out object m))
+                Console.WriteLine("Please, provide 'Models' in the config file");
+
+            Project = p as string;
+            Models = m as string;
+           
+            return this;
         }
     }
 }

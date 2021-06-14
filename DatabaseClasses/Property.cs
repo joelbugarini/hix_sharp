@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using System.Text;
-
 
 namespace hix
 {
-    class Table
+    class Property
     {
         private string name;
 
@@ -15,12 +13,12 @@ namespace hix
             get { return name; }
             set { name = value; }
         }
-        private List<Column> columns;
+        private string type;
 
-        internal List<Column> Columns
+        public string Type
         {
-            get { return columns; }
-            set { columns = value; }
+            get { return type; }
+            set { type = value; }
         }
 
         private string content;
@@ -30,5 +28,10 @@ namespace hix
             get { return content; }
             set { content = value; }
         }
+    }
+
+    class PropsReaderHelper 
+    {
+        public List<Property> Properties { get; set; }
     }
 }

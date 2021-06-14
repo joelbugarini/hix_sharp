@@ -16,7 +16,7 @@ namespace hix
         public static bool c { get; set; } // save to clippboard
         public static bool p { get; set; } // save with prefix
         public static bool s { get; set; } // save with sufix
-        public static bool single { get; set; } // single table
+        public static bool single { get; set; } // single model
 
         [STAThread]
         static void Main(string[] args)
@@ -33,11 +33,17 @@ namespace hix
             switch (arguments[0])
             {
                 case "generate": Generate(arguments); break;
-                case "tables": cn.GetTablesConsole(cn.ReadConfig()); break;
+                case "init": Initialize(arguments); break;
+                case "models": cn.GetModelsConsole(cn.ReadConfig()); break;
                 case "help": Exit(help.text); break;
                 case "man": Exit(help.text); break;
                 default: break;
             }            
+        }
+
+        private static void Initialize(string[] arguments)
+        {
+           // TODO: Implement project initializer
         }
 
         [STAThread]
@@ -48,41 +54,40 @@ namespace hix
             Config config = new Config().ReadConfig();
 
             //Get the DB schema
-            Console.WriteLine("hix generator is reading from the path " + config.Models);
+            Console.WriteLine("hix generator is reading models from " + config.Models + " folder");
 
             //try
             //{
-            Schema db = config.GenerateDb(config);
+            Schema schema = config.GenerateSchema(config);
 
             //Read File
 
             Console.WriteLine("Reading the " + arguments[1] + " File");
             RootNode rootNode = new RootNode();
-            rootNode.Create(arguments[1], db);
+            rootNode.Create(arguments[1], schema);
 
             //Map File to Generate Code
 
-            foreach (TableNode tableNode in rootNode.TableNodes)
+            foreach (ModelNode modelNode in rootNode.ModelNodes)
             {
-                var tables = single ? db.Tables.FindAll(x => x.Name == arguments[2]) : db.Tables;
-                foreach (Table table in tables)
+                var models = single ? schema.Models.FindAll(x => x.Name == arguments[2]) : schema.Models;
+                foreach (Model model in models)
                 {
 
-                    table.Content = tableNode.Scheme;
-                    foreach (ColumnNode columnNode in tableNode.ColumnNodes)
+                    model.Content = modelNode.Scheme;
+                    foreach (PropNode propNode in modelNode.PropNodes)
                     {
-                        string dataColumnNode = "";
-                        if (columnNode.Type == "notype")
+                        string dataPropNode = "";
+                        if (propNode.Type == "notype")
                         {
-                            foreach (Column column in table.Columns)
+                            foreach (Property prop in model.Props)
                             {
-                                if (!columnNode.Ignored.Contains(column.Name))
+                                if (!propNode.Ignored.Contains(prop.Name))
                                 {
-                                    dataColumnNode += columnNode.Scheme.Replace(
-                                        "[[column.name]]", column.Name).Replace(
-                                        "[[column.name].[lower]]", LowercaseFirst(column.Name)).Replace(
-                                        "[[column.name].[head]]", column.Name.Substring(1)).Replace(
-                                        "[[column.type]]", column.Type).Replace(
+                                    dataPropNode += propNode.Scheme.Replace(
+                                        "[[prop.name]]", prop.Name).Replace(
+                                        "[[prop.name].[lower]]", LowercaseFirst(prop.Name)).Replace(
+                                        "[[prop.type]]", prop.Type).Replace(
                                         "[[project.name]]", config.Project).Replace(
                                         "[[database.name]]", config.Project);
                                 }
@@ -90,17 +95,16 @@ namespace hix
                         }
                         else
                         {
-                            foreach (Column column in table.Columns)
+                            foreach (Property prop in model.Props)
                             {
-                                if (columnNode.Type == column.Type)
+                                if (propNode.Type == prop.Type)
                                 {
-                                    if (!columnNode.Ignored.Contains(column.Name))
+                                    if (!propNode.Ignored.Contains(prop.Name))
                                     {
-                                        dataColumnNode += columnNode.Scheme.Replace(
-                                                "[[column.name]]", column.Name).Replace(
-                                                "[[column.name].[lower]]", LowercaseFirst(column.Name)).Replace(
-                                                "[[column.name].[head]]", column.Name.Substring(1)).Replace(
-                                                "[[column.type]]", column.Type).Replace(
+                                        dataPropNode += propNode.Scheme.Replace(
+                                                "[[prop.name]]", prop.Name).Replace(
+                                                "[[prop.name].[lower]]", LowercaseFirst(prop.Name)).Replace(
+                                                "[[prop.type]]", prop.Type).Replace(
                                                 "[[project.name]]", config.Project).Replace(
                                                 "[[database.name]]", config.Project);
                                     }
@@ -109,10 +113,10 @@ namespace hix
                         }
 
 
-                        table.Content = ReplaceFirst(table.Content, "[[columns]]", dataColumnNode).Replace(
-                                "[[table.name]]", table.Name).Replace(
-                                "[[table.name].[lower]]", LowercaseFirst(table.Name)).Replace(
-                                "[[table.name].[init]]", table.Name.Substring(0,table.Name.Length-1)).Replace(
+                        model.Content = ReplaceFirst(model.Content, "[[props]]", dataPropNode).Replace(
+                                "[[model.name]]", model.Name).Replace(
+                                "[[model.name].[lower]]", LowercaseFirst(model.Name)).Replace(
+                                "[[model.name].[init]]", model.Name.Substring(0,model.Name.Length-1)).Replace(
                                 "[[project.name]]", config.Project).Replace(
                                 "[[database.name]]", config.Project);
 
@@ -123,20 +127,20 @@ namespace hix
 
             if (IsTableNextToRoot(rootNode.Original))
             {
-                var tables = single ? db.Tables.FindAll(x => x.Name == arguments[2]) : db.Tables;
-                foreach (Table table in tables)
+                var models = single ? schema.Models.FindAll(x => x.Name == arguments[2]) : schema.Models;
+                foreach (Model model in models)
                 {                    
                     string file = Path.GetFileNameWithoutExtension(arguments[1]);
                     string extension = Path.GetExtension(arguments[1]);
                     (new FileInfo("output/" + file + "/")).Directory.Create();
 
-                    var filepath = "output/" + file + "/" + table.Name + extension;
-                    if (s) filepath = "output/" + file + "/" + table.Name + file + extension;
-                    if (p) filepath = "output/" + file + "/" + file + table.Name + extension;
-                    if (!s && !p) filepath = "output/" + file + "/" + table.Name + extension;
+                    var filepath = "output/" + file + "/" + model.Name + extension;
+                    if (s) filepath = "output/" + file + "/" + model.Name + file + extension;
+                    if (p) filepath = "output/" + file + "/" + file + model.Name + extension;
+                    if (!s && !p) filepath = "output/" + file + "/" + model.Name + extension;
 
-                    if (c){ Clipboard.SetText(table.Content); }
-                    else { CreateFile(filepath, table.Content); }
+                    if (c){ Clipboard.SetText(model.Content); }
+                    else { CreateFile(filepath, model.Content); }
 
                     
                     Console.WriteLine(filepath + " Created");
@@ -145,12 +149,12 @@ namespace hix
             else
             {
                 string document = "";
-                var tables = single ? db.Tables.FindAll(x => x.Name == arguments[2]) : db.Tables;
-                foreach (Table table in tables)
+                var models = single ? schema.Models.FindAll(x => x.Name == arguments[2]) : schema.Models;
+                foreach (Model model in models)
                 {
-                    document += table.Content;
+                    document += model.Content;
                 }
-                document = rootNode.Scheme.Replace("[[table.container]]", document)
+                document = rootNode.Scheme.Replace("[[model.container]]", document)
                                           .Replace("[[project.name]]", config.Project)
                                           .Replace("[[database.name]]", config.Project);
 
@@ -204,11 +208,11 @@ namespace hix
             int rootHead = text.IndexOf("[<]");
             int rootTail = text.IndexOf("[>]");
 
-            int tableHead = text.IndexOf("[[table]]");
-            int tableTail = text.IndexOf("[[/table]]")+ "[[/table]]".Length;
+            int modelHead = text.IndexOf("[[model]]");
+            int modelTail = text.IndexOf("[[/model]]")+ "[[/model]]".Length;
 
             bool result = false;
-            if ((tableHead - rootHead) == "[<]".Length && rootTail == tableTail) result = true;
+            if ((modelHead - rootHead) == "[<]".Length && rootTail == modelTail) result = true;
             return result;
         }
 
@@ -243,7 +247,7 @@ namespace hix
 
         public static void Exit(string text)
         {
-            Console.Write(text);
+            Console.WriteLine(text);
             Environment.Exit(0);
         }
     }

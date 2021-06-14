@@ -1,67 +1,67 @@
-[<][[table]]$(document).ready(function () {
+[<][[model]]$(document).ready(function () {
     var vm = {};
 
-    vm.Table = $('#[[table.name]]_').DataTable({
+    vm.Table = $('#[[model.name]]_').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
-            url: '/[[table.name]]ServerSide/SearchAction',
+            url: '/[[model.name]]ServerSide/SearchAction',
             type: 'POST'
         },
         scrollX: true,
         order: [],
-        columns: [
-            [[column].[ignore=Id]]{ data: "[[column.name]]" },
-            [[/column]]
+        props: [
+            [[prop].[ignore=Id]]{ data: "[[prop.name]]" },
+            [[/prop]]
         ]
     });
-    $('#[[table.name]]_').removeClass('display').addClass('table table-striped table-hover table-condensed');
+    $('#[[model.name]]_').removeClass('display').addClass('table table-striped table-hover table-condensed');
 
     vm.SelectedId = ko.observable(0);
 
-    [[column int]]vm.New[[column.name]] = ko.observable(0);
-    [[/column int]][[column nchar].[ignore=_Sample]]vm.[[column.name]]Selected = ko.observable(0);
-    vm.[[column.name]] = ko.observable([]);
-    vm.[[column.name]]Load = ko.computed(() => {
-        axios.get('/api/[[column.name]]').then((res) => {
-            vm.[[column.name]](res.data);
+    [[prop int]]vm.New[[prop.name]] = ko.observable(0);
+    [[/prop int]][[prop nchar].[ignore=_Sample]]vm.[[prop.name]]Selected = ko.observable(0);
+    vm.[[prop.name]] = ko.observable([]);
+    vm.[[prop.name]]Load = ko.computed(() => {
+        axios.get('/api/[[prop.name]]').then((res) => {
+            vm.[[prop.name]](res.data);
         });
     }).extend({ async: true });
-    vm.[[column.name]]Change = ko.computed(() => {
-        vm.[[column.name]]Selected();
+    vm.[[prop.name]]Change = ko.computed(() => {
+        vm.[[prop.name]]Selected();
     });
-    [[/column nchar]][[column varchar]]vm.New[[column.name]] = ko.observable('');
-    [[/column varchar]][[column bit]]vm.New[[column.name]] = ko.observable(false);
-    [[/column bit]][[column datetime]]vm.New[[column.name]] = ko.observable('');
-    [[/column datetime]][[column float]]vm.New[[column.name]] = ko.observable(0);
-    [[/column float]][[column datetimeoffset]]vm.New[[column.name]] = ko.observable(0);
-    [[/column datetimeoffset]][[column varbinary]]vm.New[[column.name]] = ko.observable([]);
-    [[/column varbinary]][[column decimal]]vm.New[[column.name]] = ko.observable(0);
-    [[/column decimal]]
+    [[/prop nchar]][[prop varchar]]vm.New[[prop.name]] = ko.observable('');
+    [[/prop varchar]][[prop bit]]vm.New[[prop.name]] = ko.observable(false);
+    [[/prop bit]][[prop datetime]]vm.New[[prop.name]] = ko.observable('');
+    [[/prop datetime]][[prop float]]vm.New[[prop.name]] = ko.observable(0);
+    [[/prop float]][[prop datetimeoffset]]vm.New[[prop.name]] = ko.observable(0);
+    [[/prop datetimeoffset]][[prop varbinary]]vm.New[[prop.name]] = ko.observable([]);
+    [[/prop varbinary]][[prop decimal]]vm.New[[prop.name]] = ko.observable(0);
+    [[/prop decimal]]
     vm.Display = ko.observable(false);
     vm.MsgHeader = ko.observable('');
     vm.ViewState = ko.observable('Read');
 
-    $('#[[table.name]]_ tbody').on('click', 'tr', function () {
+    $('#[[model.name]]_ tbody').on('click', 'tr', function () {
         var data = vm.Table.row(this).data();
-            axios.get(`/api/[[table.name].[head]]/${data.Id}`)
+            axios.get(`/api/[[model.name]]/${data.Id}`)
             .then((res) => {
                 vm.SelectedId(res.data.Id);
 
-                [[column int]]vm.New[[column.name]](res.data.[[column.name]]);
-                [[/column int]][[column nchar]]vm.[[column.name]]Selected(res.data.[[column.name]]Id);
-                [[/column nchar]][[column varchar]]vm.New[[column.name]](res.data.[[column.name]]);
-                [[/column varchar]][[column bit]]vm.New[[column.name]](res.data.[[column.name]]);
-                [[/column bit]][[column datetime]]vm.New[[column.name]](res.data.[[column.name]]);
-                [[/column datetime]][[column float]]vm.New[[column.name]](res.data.[[column.name]]);
-                [[/column float]][[column datetimeoffset]]vm.New[[column.name]](res.data.[[column.name]]);
-                [[/column datetimeoffset]][[column varbinary]]vm.New[[column.name]](res.data.[[column.name]]);
-                [[/column varbinary]][[column decimal]]vm.New[[column.name]](res.data.[[column.name]]);
-                [[/column decimal]]
+                [[prop int]]vm.New[[prop.name]](res.data.[[prop.name]]);
+                [[/prop int]][[prop nchar]]vm.[[prop.name]]Selected(res.data.[[prop.name]]Id);
+                [[/prop nchar]][[prop varchar]]vm.New[[prop.name]](res.data.[[prop.name]]);
+                [[/prop varchar]][[prop bit]]vm.New[[prop.name]](res.data.[[prop.name]]);
+                [[/prop bit]][[prop datetime]]vm.New[[prop.name]](res.data.[[prop.name]]);
+                [[/prop datetime]][[prop float]]vm.New[[prop.name]](res.data.[[prop.name]]);
+                [[/prop float]][[prop datetimeoffset]]vm.New[[prop.name]](res.data.[[prop.name]]);
+                [[/prop datetimeoffset]][[prop varbinary]]vm.New[[prop.name]](res.data.[[prop.name]]);
+                [[/prop varbinary]][[prop decimal]]vm.New[[prop.name]](res.data.[[prop.name]]);
+                [[/prop decimal]]
                 
                 vm.ViewState('Read');
                 vm.Display(true);
-                vm.MsgHeader("[[table.name]] detail");
+                vm.MsgHeader("[[model.name]] detail");
             })
             .catch(res => console.log(res));
     });
@@ -70,7 +70,7 @@
 		vm.Clean();
         vm.Display(true);
         vm.ViewState('New');
-        vm.MsgHeader('Add [[table.name]]');
+        vm.MsgHeader('Add [[model.name]]');
     }
 
     vm.Edit = function() {
@@ -85,17 +85,17 @@
 
     vm.Save = function() {
         if (vm.SelectedId() == 0) {
-            axios.post("/api/[[table.name].[head]", {
-                 [[column int]][[column.name]]: vm.New[[column.name]](),
-                [[/column int]][[column nchar]][[column.name]]Id: vm.[[column.name]]Selected(),
-                [[/column nchar]][[column varchar]][[column.name]]: vm.New[[column.name]](),
-                [[/column varchar]][[column bit]][[column.name]]: vm.New[[column.name]](),
-                [[/column bit]][[column datetime]][[column.name]]: moment(vm.New[[column.name]](), "MM/DD/YYYY").format(),
-                [[/column datetime]][[column float]][[column.name]]: vm.New[[column.name]](),
-                [[/column float]][[column datetimeoffset]][[column.name]]: vm.New[[column.name]](),
-                [[/column datetimeoffset]][[column varbinary]][[column.name]]: vm.New[[column.name]](),
-                [[/column varbinary]][[column decimal]][[column.name]]: vm.New[[column.name]](),
-                [[/column decimal]]
+            axios.post("/api/[[model.name]]", {
+                 [[prop int]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop int]][[prop nchar]][[prop.name]]Id: vm.[[prop.name]]Selected(),
+                [[/prop nchar]][[prop varchar]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop varchar]][[prop bit]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop bit]][[prop datetime]][[prop.name]]: moment(vm.New[[prop.name]](), "MM/DD/YYYY").format(),
+                [[/prop datetime]][[prop float]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop float]][[prop datetimeoffset]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop datetimeoffset]][[prop varbinary]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop varbinary]][[prop decimal]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop decimal]]
             }).then(() => {
                 vm.Display(false);
                 vm.Clean();
@@ -103,19 +103,19 @@
                 vm.Reload();
 
             })
-                .catch((error) => { swal("[[table.name]] was not been stored into the database"); });
+                .catch((error) => { swal("[[model.name]] was not been stored into the database"); });
         } else {
-            axios.put("/api/[[table.name].[head]]", {
-                [[column int]][[column.name]]: vm.New[[column.name]](),
-                [[/column int]][[column nchar]][[column.name]]Id: vm.[[column.name]]Selected(),
-                [[/column nchar]][[column varchar]][[column.name]]: vm.New[[column.name]](),
-                [[/column varchar]][[column bit]][[column.name]]: vm.New[[column.name]](),
-                [[/column bit]][[column datetime]][[column.name]]: moment(vm.New[[column.name]](), "MM/DD/YYYY").format(),
-                [[/column datetime]][[column float]][[column.name]]: vm.New[[column.name]](),
-                [[/column float]][[column datetimeoffset]][[column.name]]: vm.New[[column.name]](),
-                [[/column datetimeoffset]][[column varbinary]][[column.name]]: vm.New[[column.name]](),
-                [[/column varbinary]][[column decimal]][[column.name]]: vm.New[[column.name]](),
-                [[/column decimal]]
+            axios.put("/api/[[model.name].[head]]", {
+                [[prop int]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop int]][[prop nchar]][[prop.name]]Id: vm.[[prop.name]]Selected(),
+                [[/prop nchar]][[prop varchar]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop varchar]][[prop bit]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop bit]][[prop datetime]][[prop.name]]: moment(vm.New[[prop.name]](), "MM/DD/YYYY").format(),
+                [[/prop datetime]][[prop float]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop float]][[prop datetimeoffset]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop datetimeoffset]][[prop varbinary]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop varbinary]][[prop decimal]][[prop.name]]: vm.New[[prop.name]](),
+                [[/prop decimal]]
             }).then(() => {
                 vm.Display(false);
                 vm.Clean();
@@ -123,12 +123,12 @@
                 vm.ViewState('Read');
 
             })
-                .catch(() => { swal("[[table.name]] was not been stored into the database"); });
+                .catch(() => { swal("[[model.name]] was not been stored into the database"); });
         }
     }
     vm.Delete = function() {
         swal({
-            title: "Are you sure to delete [[table.name]]?",
+            title: "Are you sure to delete [[model.name]]?",
             text: "It will be not possible to restore it.",
             type: "warning",
             showCancelButton: true,
@@ -138,28 +138,28 @@
             closeOnConfirm: true
         },
             () => {
-                axios.delete("/api/[[table.name].[head]]/" + vm.SelectedId()).then(() => {
+                axios.delete("/api/[[model.name].[head]]/" + vm.SelectedId()).then(() => {
                     vm.Display(false);
                     vm.SelectedId(0);
                     vm.Clean();
                     vm.Reload();
 
-                    }).catch(() => { swal("[[table.name]] was not been stored into the database"); });
+                    }).catch(() => { swal("[[model.name]] was not been stored into the database"); });
             });
     }
 
     vm.Clean = function(){
         vm.SelectedId(0);
-        [[column int]]vm.New[[column.name]](0);
-        [[/column int]][[column nchar]]vm.[[column.name]]Selected(0);
-        [[/column nchar]][[column varchar]]vm.New[[column.name]]('');
-        [[/column varchar]][[column bit]]vm.New[[column.name]](false);
-        [[/column bit]][[column datetime]]vm.New[[column.name]]('');
-        [[/column datetime]][[column float]]vm.New[[column.name]](0);
-        [[/column float]][[column datetimeoffset]]vm.New[[column.name]](0);
-        [[/column datetimeoffset]][[column varbinary]]vm.New[[column.name]]([]);
-        [[/column varbinary]][[column decimal]]vm.New[[column.name]](0);
-        [[/column decimal]]
+        [[prop int]]vm.New[[prop.name]](0);
+        [[/prop int]][[prop nchar]]vm.[[prop.name]]Selected(0);
+        [[/prop nchar]][[prop varchar]]vm.New[[prop.name]]('');
+        [[/prop varchar]][[prop bit]]vm.New[[prop.name]](false);
+        [[/prop bit]][[prop datetime]]vm.New[[prop.name]]('');
+        [[/prop datetime]][[prop float]]vm.New[[prop.name]](0);
+        [[/prop float]][[prop datetimeoffset]]vm.New[[prop.name]](0);
+        [[/prop datetimeoffset]][[prop varbinary]]vm.New[[prop.name]]([]);
+        [[/prop varbinary]][[prop decimal]]vm.New[[prop.name]](0);
+        [[/prop decimal]]
     }
 
     vm.Reload = function() {
@@ -168,4 +168,4 @@
     }
 
      ko.applyBindings(vm, $("#main")[0]);
-});[[/table]][>]
+});[[/model]][>]

@@ -9,12 +9,12 @@ namespace hix
     public class RootNode
     {
         
-        private List<TableNode> tableNodes;
+        private List<ModelNode> modelNodes;
 
-        internal List<TableNode> TableNodes
+        internal List<ModelNode> ModelNodes
         {
-            get { return tableNodes; }
-            set { tableNodes = value; }
+            get { return modelNodes; }
+            set { modelNodes = value; }
         }
         private string original;
 
@@ -60,24 +60,24 @@ namespace hix
         public void ReadScheme(string content)
         {
             string contentCopy = content;
-            this.TableNodes = new List<TableNode>();
-            int ss = content.IndexOf("[[table]]");
-            while (content.IndexOf("[[table]]") >= 0)
+            this.ModelNodes = new List<ModelNode>();
+            int ss = content.IndexOf("[[model]]");
+            while (content.IndexOf("[[model]]") >= 0)
             {
-                int head = content.IndexOf("[[table]]") + "[[table]]".Length;
-                int tail = content.IndexOf("[[/table]]");
+                int head = content.IndexOf("[[model]]") + "[[model]]".Length;
+                int tail = content.IndexOf("[[/model]]");
 
                 contentCopy = content.Substring(head, tail - head);
 
-                int replaceHead = content.IndexOf("[[table]]");
-                int replaceTail = content.IndexOf("[[/table]]") + "[[/table]]".Length;
+                int replaceHead = content.IndexOf("[[model]]");
+                int replaceTail = content.IndexOf("[[/model]]") + "[[/model]]".Length;
 
-                content = content.Replace(content.Substring(replaceHead, replaceTail - replaceHead), "[[table.container]]");
+                content = content.Replace(content.Substring(replaceHead, replaceTail - replaceHead), "[[model.container]]");
                 this.Scheme = content;
 
-                TableNode tableNode = new TableNode();
-                tableNode.Create(contentCopy);
-                this.TableNodes.Add(tableNode);
+                ModelNode modelNode = new ModelNode();
+                modelNode.Create(contentCopy);
+                this.ModelNodes.Add(modelNode);
                
             }
         }
@@ -85,7 +85,7 @@ namespace hix
         public string GetAllTables()
         {
             string result = "";
-            foreach (TableNode tableNode in this.tableNodes) result += tableNode.Scheme;
+            foreach (ModelNode modelNode in this.modelNodes) result += modelNode.Scheme;
             return result;
         }
     }

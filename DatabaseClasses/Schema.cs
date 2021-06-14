@@ -16,15 +16,12 @@ namespace hix
             set { name = value; }
         }
 
-        private List<Table> tables;
+        private List<Model> models;
 
-        internal List<Table> Tables
+        internal List<Model> Models
         {
-            get { return tables; }
-            set { tables = value; }
+            get { return models; }
+            set { models = value; }
         }
-
-        private string content;
-
     }
 }

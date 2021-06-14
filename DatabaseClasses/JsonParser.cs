@@ -1,944 +1,1512 @@
-﻿using System;
+﻿// Copyright(c) 2016, Alexandre Mutel
+// All rights reserved.
+// 
+// Redistribution and use in source and binary forms, with or without modification
+// , are permitted provided that the following conditions are met:
+// 
+// 1. Redistributions of source code must retain the above copyright notice, this
+//    list of conditions and the following disclaimer.
+// 
+// 2. Redistributions in binary form must reproduce the above copyright notice,
+//    this list of conditions and the following disclaimer in the documentation
+//    and/or other materials provided with the distribution.
+// 
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+// OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
-#if NET40
-using System.Dynamic;
-#endif
 using System.Globalization;
-using System.Linq;
+using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Json
+// ----------------------------------------------------------------------------
+// This is a single file version of a fast, simple and accurate JSON serializer 
+// and deserializer.
+// The serializer should be compatible with the ECMA-404 http://json.org
+// And the RFC-4627: https://tools.ietf.org/html/rfc4627
+//
+// By default, all types are declared internal so that they don't show up in
+// the external dependencies of your project when this file is included directly
+//
+// Latest version of this code is at http://github.com/textamina/jsonite
+// ----------------------------------------------------------------------------
+//                             Version history
+// ----------------------------------------------------------------------------
+// Version 1.0                                                xoofx, 2016-02-07
+// - Initial version, serializer and deserializer to a simple object 
+//   graph. Method for validating a json text.
+// ----------------------------------------------------------------------------
+namespace Jsonite
 {
     /// <summary>
-    /// Possible JSON tokens in parsed input.
+    /// A JSON parser and reflector to Dictionary/List.
     /// </summary>
-    public enum JsonToken
-    {
-        Unknown,
-        LeftBrace,
-        RightBrace,
-        Colon,
-        Comma,
-        LeftBracket,
-        RightBracket,
-        String,
-        Number,
-        True,
-        False,
-        Null
-    }
-
-    /// <summary>
-    /// Exception raised when <see cref="JsonParser" /> encounters an invalid token.
-    /// </summary>
-    public class InvalidJsonException : Exception
-    {
-        public InvalidJsonException(string message)
-            : base(message)
-        {
-
-        }
-    }
-
-#if NET40
-    public interface IJson { }
-
-    public class JsonArray : DynamicObject, IEnumerable, IJson
-    {
-        private readonly List<IJson> _collection;
-
-        public JsonArray(ICollection<object> collection)
-        {
-            _collection = new List<IJson>(collection.Count);
-            foreach (var instance in collection.Cast<IDictionary<string, object>>())
-            {
-                _collection.Add(new JsonObject(instance));
-            }
-        }
-
-        public IEnumerator GetEnumerator()
-        {
-            return _collection.GetEnumerator();
-        }
-    }
-
-    public class JsonObject : DynamicObject, IJson
-    {
-        private readonly IDictionary<string, object> _hash = new Dictionary<string, object>();
-
-        public JsonObject(IDictionary<string, object> hash)
-        {
-            _hash = hash;
-        }
-
-        public override bool TrySetMember(SetMemberBinder binder, object value)
-        {
-            var name = Underscored(binder.Name);
-            _hash[name] = value;
-            return _hash[name] == value;
-        }
-
-        public override bool TryGetMember(GetMemberBinder binder, out object result)
-        {
-            var name = Underscored(binder.Name);
-            return YieldMember(name, out result);
-        }
-
-        private bool YieldMember(string name, out object result)
-        {
-            if (_hash.ContainsKey(name))
-            {
-                result = _hash[name];
-
-                if (result is IDictionary<string, object>)
-                {
-                    result = new JsonObject((IDictionary<string, object>)result);
-                    return true;
-                }
-
-                return _hash[name] == result;
-            }
-            result = null;
-            return false;
-        }
-
-        private static string Underscored(IEnumerable<char> pascalCase)
-        {
-            var sb = new StringBuilder();
-            var i = 0;
-            foreach (var c in pascalCase)
-            {
-                if (char.IsUpper(c) && i > 0)
-                {
-                    sb.Append("_");
-                }
-                sb.Append(c);
-                i++;
-            }
-            return sb.ToString().ToLowerInvariant();
-        }
-    }
+#if JSONITE_PUBLIC
+    public
+#else
+    internal
 #endif
-
-    /// <summary>
-    /// A parser for JSON.
-    /// <seealso cref="http://json.org" />
-    /// </summary>
-    public class JsonParser
+    static class Json
     {
-#if !NETCF
-        private const NumberStyles JsonNumbers = NumberStyles.Float;
-#endif
-        private static readonly IDictionary<Type, PropertyInfo[]> _cache;
+        private static readonly JsonSettings DefaultSettings = new JsonSettings();
+        private static readonly JsonSettings DefaultSettingsForValidate = new JsonSettings();
 
-        private static readonly char[] _base16 = new[]
-                             {
-                                 '0', '1', '2', '3',
-                                 '4', '5', '6', '7',
-                                 '8', '9', 'A', 'B',
-                                 'C', 'D', 'E', 'F'
-                             };
-
-        static JsonParser()
+        /// <summary>
+        /// Deserializes the specified json text into an object.
+        /// </summary>
+        /// <param name="text">A json text.</param>
+        /// <param name="settings">The settings used to deserialize.</param>
+        /// <returns>An object representing the deserialized json text</returns>
+        /// <exception cref="System.ArgumentNullException">if text is null</exception>
+        public static object Deserialize(string text, JsonSettings settings = null)
         {
-            _cache = new Dictionary<Type, PropertyInfo[]>(0);
+            if (text == null) throw new ArgumentNullException(nameof(text));
+            return Deserialize(new StringReader(text), settings);
         }
 
-        public static string Serialize<T>(T instance)
+        /// <summary>
+        /// Deserializes the specified json text into an object.
+        /// </summary>
+        /// <param name="reader">The reader providing a json text.</param>
+        /// <param name="settings">The settings used to deserialize.</param>
+        /// <returns>An object representing the deserialized json text</returns>
+        /// <exception cref="System.ArgumentNullException">if reader is null</exception>
+        public static object Deserialize(TextReader reader, JsonSettings settings = null)
         {
-            var bag = GetBagForObject(instance);
+            if (reader == null) throw new ArgumentNullException(nameof(reader));
 
-            return ToJson(bag);
+            var parser = new JsonReader(reader, settings ?? DefaultSettings);
+            return parser.Parse(null, typeof(object), false);
         }
 
-        public static object Deserialize(string json, Type type)
+        /// <summary>
+        /// Validates the specified json text.
+        /// </summary>
+        /// <param name="text">A json text.</param>
+        /// <param name="settings">The settings used to deserialize.</param>
+        /// <exception cref="System.ArgumentNullException">if reader is null</exception>
+        /// <exception cref="JsonException">if the json text is not valid</exception>
+        public static void Validate(string text, JsonSettings settings = null)
         {
-            object instance;
-            var map = PrepareInstance(out instance, type);
-            var bag = FromJson(json);
-
-            DeserializeImpl(map, bag, instance);
-            return instance;
+            Validate(new StringReader(text), settings);
         }
 
-        public static T Deserialize<T>(string json)
+        /// <summary>
+        /// Validates the specified json text.
+        /// </summary>
+        /// <param name="reader">The reader providing a json text.</param>
+        /// <param name="settings">The settings used to deserialize.</param>
+        /// <exception cref="System.ArgumentNullException">if reader is null</exception>
+        /// <exception cref="JsonException">if the json text is not valid</exception>
+        public static void Validate(TextReader reader, JsonSettings settings = null)
         {
-            T instance;
-            var map = PrepareInstance(out instance);
-            var bag = FromJson(json);
-
-            DeserializeImpl(map, bag, instance);
-            return instance;
+            settings = settings ?? DefaultSettingsForValidate;
+            settings.Reflector = JsonReflectorForValidate.Default;
+            Deserialize(reader, settings);
         }
 
-#if NET40
-        public static dynamic Deserialize(string json)
+        /// <summary>
+        /// Serializes the specified value to a json text.
+        /// </summary>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="settings">The settings used to serialize.</param>
+        /// <returns>A json string representation of the serialized value</returns>
+        public static string Serialize(object value, JsonSettings settings = null)
         {
-            JsonToken type;
-            var inner = FromJson(json, out type);
-            dynamic instance = null;
+            var stringWriter = new StringWriter(CultureInfo.InvariantCulture);
+            Serialize(value, stringWriter, settings);
+            return stringWriter.ToString();
+        }
 
-            switch (type)
+        /// <summary>
+        /// Serializes the specified value to a json text.
+        /// </summary>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="writer">The output writer that will contains the serialized json text.</param>
+        /// <param name="settings">The settings used to serialize.</param>
+        public static void Serialize(object value, TextWriter writer, JsonSettings settings = null)
+        {
+            var jsonWriter = new JsonWriter(writer, settings ?? DefaultSettings);
+            jsonWriter.Write(value);
+        }
+
+        /// <summary>
+        /// The internal JsonReader used to deserialize a json text into an object graph.
+        /// </summary>
+        private struct JsonReader
+        {
+            private int offset;
+            private int line;
+            private int column;
+            private char c;
+            private readonly JsonSettings settings;
+            private readonly IJsonReflector reflector;
+            private readonly StringBuilder builder;
+            private const char Eof = '\0';
+            private bool isEof;
+            private readonly bool isValidate;
+            private int level;
+
+            public JsonReader(TextReader reader, JsonSettings settings)
             {
-                case JsonToken.LeftBrace:
-                    var @object = (IDictionary<string, object>)inner.Single().Value;
-                    instance = new JsonObject(@object);
-                    break;
-                case JsonToken.LeftBracket:
-                    var @array = (IList<object>)inner.Single().Value;
-                    instance = new JsonArray(@array);
-                    break;
+                Reader = reader;
+                this.settings = settings;
+                this.reflector = settings.Reflector ?? JsonReflectorDefault.Instance;
+                reflector.Initialize(settings);
+                isValidate = reflector is JsonReflectorForValidate;
+                offset = 0;
+                line = 0;
+                column = 0;
+                c = Eof;
+                level = 0;
+                isEof = false;
+                builder = new StringBuilder();
+                NextCharSkipWhitespaces();
             }
 
-            return instance;
-        }
-#endif
+            private TextReader Reader { get; }
 
-        private static void DeserializeImpl(IEnumerable<PropertyInfo> map,
-                                            IDictionary<string, object> bag,
-                                            object instance)
-        {
-            DeserializeType(map, bag, instance);
-        }
-
-        private static void DeserializeImpl<T>(IEnumerable<PropertyInfo> map,
-                                               IDictionary<string, object> bag,
-                                               T instance)
-        {
-            DeserializeType(map, bag, instance);
-        }
-
-        private static void DeserializeType(IEnumerable<PropertyInfo> map, IDictionary<string, object> bag, object instance)
-        {
-            foreach (var info in map)
+            public object Parse(object existingObject, Type expectedType, bool expectValue)
             {
-                var key = info.Name;
-                if (!bag.ContainsKey(key))
+                switch (c)
                 {
-                    key = info.Name.Replace("_", "");
-                    if (!bag.ContainsKey(key))
-                    {
-                        key = info.Name.Replace("-", "");
-                        if (!bag.ContainsKey(key))
+                    case '{':
+                        return ParseObject(existingObject, expectedType);
+                    case '[':
+                        return ParseArray(existingObject, expectedType);
+                    case '"':
+                        return ParseString();
+                    case 't':
+                        return ParseTrue();
+                    case 'f':
+                        return ParseFalse();
+                    case 'n':
+                        return ParseNull();
+                    default:
+                        if (c == '-' || IsDigit(c))
                         {
+                            return ParseNumber();
+                        }
+
+                        if (c != Eof)
+                        {
+                            RaiseUnexpected("");
+                        }
+                        break;
+
+                }
+
+                if (expectValue)
+                {
+                    RaiseUnexpected("while parsing a value. Expecting OBJECT, ARRAY, STRING, NUMBER, true, false or null"); // unit-test: 020-test-error-object3.txt
+                }
+
+                return null;
+            }
+
+            private void IncrementLevel()
+            {
+                level++;
+                if (settings.MaxDepth > 0 && level > settings.MaxDepth)
+                {
+                    RaiseException("The maximum allowed depth [{settings.MaxDepth}] level has been reached. The object graph is too deep");
+                }
+            }
+
+            private void DecrementLevel()
+            {
+                level--;
+            }
+
+            private object ParseObject(object obj, Type expectedType)
+            {
+                IncrementLevel();
+
+                NextCharSkipWhitespaces(); // Skip starting {
+
+                // If we are deserializing to a value that is the same as the target, we can reuse it
+
+                object objectContext;
+                obj = reflector.OnDeserializeEnterObject(obj, expectedType, out objectContext);
+
+                bool expectMember = false;
+
+                while (c != Eof)
+                {
+                    if (c == '"')
+                    {
+                        // Deserialize the member
+                        var memberName = ParseString();
+
+                        if (c != ':')
+                        {
+                            RaiseUnexpected($"while parsing an object. Expecting a colon ':' after a member");  // unit test: 020-test-error-object2.txt
+                        }
+
+                        NextCharSkipWhitespaces();
+
+                        Type memberExpectedType;
+                        object memberContext;
+                        object memberExistingValue;
+                        reflector.OnDeserializePrepareMemberForObject(objectContext, obj, memberName, out memberExpectedType, out memberContext, out memberExistingValue);
+
+                        // Deserialize the value
+                        var value = Parse(memberExistingValue, memberExpectedType, true);
+
+                        // Sets the value on the object
+                        reflector.OnDeserializeSetObjectMember(objectContext, obj, memberContext, value);
+                        expectMember = false;
+
+                        if (c == ',')
+                        {
+                            NextCharSkipWhitespaces();
+                            expectMember = true;
                             continue;
                         }
                     }
+
+                    if (c == '}')
+                    {
+                        break;
+                    }
+
+                    RaiseUnexpected("while parsing an object. Expecting a STRING or '}'"); // unit test: 020-test-error-object1.txt
                 }
 
-                var value = bag[key];
-                if (info.PropertyType == typeof(DateTime))
+                if (c == Eof)
                 {
-                    // Dates (Not part of spec, using lossy epoch convention)
-                    var seconds = Int32.Parse(
-                        value.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture
-                        );
-                    var time = new DateTime(1970, 1, 1).ToUniversalTime();
-                    value = time.AddSeconds(seconds);
+                    RaiseUnexpected("while parsing an object"); // unit-test: 020-test-error-object4.txt
                 }
-
-                if (info.PropertyType == typeof(byte[]))
+                else if (expectMember && !settings.AllowTrailingCommas)
                 {
-                    var bytes = (List<object>)value;
-                    value = bytes.Select(Convert.ToByte).ToArray();
+                    RaiseUnexpected("while parsing an object. Expecting a STRING after a comma ','");  // unit-test: 020-test-error-object5.txt
                 }
 
-                if (info.PropertyType == typeof(double))
+                NextCharSkipWhitespaces(); // Skip closing }
+
+                var result = reflector.OnDeserializeExitObject(objectContext, obj);
+                DecrementLevel();
+                return result;
+            }
+
+            private object ParseArray(object array, Type expectedType)
+            {
+                IncrementLevel();
+                NextCharSkipWhitespaces(); // Skip starting [
+
+                Type expectedArrayItemType;
+                object arrayContext;
+                array = reflector.OnDeserializeEnterArray(array, expectedType, out expectedArrayItemType, out arrayContext);
+                bool expectItem = false;
+
+                int index = 0;
+                while (c != Eof)
                 {
-                    value = Convert.ToDouble(value);
+                    if (c == ']')
+                    {
+                        break;
+                    }
+
+                    var value = Parse(null, expectedArrayItemType, true);
+                    expectItem = false;
+
+                    // Add the item to the array
+                    reflector.OnDeserializeAddArrayItem(arrayContext, array, index++, value);
+
+                    if (c == ']')
+                    {
+                        break;
+                    }
+
+                    if (c == ',')
+                    {
+                        NextCharSkipWhitespaces();
+                        expectItem = true;
+                    }
+                    else
+                    {
+                        RaiseUnexpected("while parsing an array"); // unit-test: 030-test-error-array2.txt
+                    }
                 }
 
-                if (info.PropertyType == typeof(int))
+                if (c == Eof)
                 {
-                    value = Convert.ToInt32(value);
+                    RaiseUnexpected("while parsing an array"); // unit-test: 030-test-error-array1.txt
                 }
-
-                if (info.PropertyType == typeof(long))
+                else if (expectItem && !settings.AllowTrailingCommas)
                 {
-                    value = Convert.ToInt64(value);
+                    RaiseUnexpected("while parsing an array. Expecting a STRING, NUMBER, OBJECT, ARRAY, true, false or null after a comma ','"); // unit-test: 030-test-error-array3.txt
                 }
 
-                info.SetValue(instance, value, null);
+                NextCharSkipWhitespaces(); // Skip closing ]
+
+                var result = reflector.OnDeserializeExitArray(arrayContext, array);
+                DecrementLevel();
+                return result;
+            }
+
+            private string ParseString()
+            {
+                NextChar(); // Skip " but don't skip whitespaces
+                builder.Length = 0;
+                while (true)
+                {
+                    // Handle escape
+                    switch (c)
+                    {
+                        case '\\':
+                            NextChar();
+                            switch (c)
+                            {
+                                case '"':
+                                    builder.Append('"');
+                                    NextChar();
+                                    continue;
+                                case '\\':
+                                    builder.Append('\\');
+                                    NextChar();
+                                    continue;
+                                case '/':
+                                    builder.Append('/');
+                                    NextChar();
+                                    continue;
+                                case 'b':
+                                    builder.Append('\b');
+                                    NextChar();
+                                    continue;
+                                case 'f':
+                                    builder.Append('\f');
+                                    NextChar();
+                                    continue;
+                                case 'n':
+                                    builder.Append('\n');
+                                    NextChar();
+                                    continue;
+                                case 'r':
+                                    builder.Append('\r');
+                                    NextChar();
+                                    continue;
+                                case 't':
+                                    builder.Append('\t');
+                                    NextChar();
+                                    continue;
+                                case 'u':
+                                    NextChar();
+                                    // Must be followed 4 hex numbers (0000-FFFF)
+                                    if (IsHex(c)) // 1
+                                    {
+                                        var value = HexToInt(c);
+                                        NextChar();
+                                        if (IsHex(c)) // 2
+                                        {
+                                            value = (value << 4) | HexToInt(c);
+                                            NextChar();
+                                            if (IsHex(c)) // 3
+                                            {
+                                                value = (value << 4) | HexToInt(c);
+                                                NextChar();
+                                                if (IsHex(c)) // 4
+                                                {
+                                                    value = (value << 4) | HexToInt(c);
+                                                    builder.Append((char)value);
+                                                    NextChar();
+                                                    continue;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    RaiseUnexpected("while parsing a string. Expecting only hexadecimals [0-9a-fA-F] after escape \\u"); // unit-test: 001-test-error-string4.txt
+                                    goto end_of_parsing;
+                            }
+                            RaiseUnexpected("while parsing a string. Only \\ \" b f n r t v u0000-uFFFF are allowed"); // unit-test: 001-test-error-string1.txt
+                            goto end_of_parsing;
+                        case Eof:
+                            RaiseUnexpected("while parsing a string"); // unit-test: 001-test-error-string2.txt
+                            goto end_of_parsing;
+                        case '"':
+                            NextCharSkipWhitespaces();
+                            goto end_of_parsing;
+                        default:
+                            if (c < ' ')
+                            {
+                                RaiseUnexpected("while parsing a string. Use escape \\ instead"); // unit-test: 001-test-error-string3.txt
+                            }
+                            builder.Append(c);
+                            NextChar();
+                            break;
+                    }
+                }
+                end_of_parsing:
+
+                // If we are validating, no need to create a string as we won't use it
+                return isValidate ? null : builder.ToString();
+            }
+
+            private object ParseNumber()
+            {
+                bool isFloat = false;
+                bool hasExponent = false;
+                bool isNegative = false;
+                builder.Length = 0;
+                if (c == '-')
+                {
+                    isNegative = true;
+                    builder.Append(c);
+                    NextChar();
+                }
+
+                if (!IsDigit(c))
+                {
+                    RaiseUnexpected("while parsing a number after a '-'. Expecting a digit 0-9"); // unit-test: 002-test-error-number1.txt
+                }
+
+                // If number starts by 0, we don't expect any digit after
+                if (c == '0')
+                {
+                    builder.Append(c);
+                    NextChar();
+
+                    // Make sure that we don't have a digit after
+                    if (IsDigit(c))
+                    {
+                        RaiseUnexpected("while parsing a number. The number '0' must followed by '.' or by an exponent or nothing"); // unit-test: 002-test-error-number2.txt
+                    }
+                }
+                else
+                {
+                    // Else number starts by non-0, so we can advance as much digits as we have
+                    do
+                    {
+                        builder.Append(c);
+                        NextChar();
+                    } while (IsDigit(c));
+                }
+
+                if (c == '.')
+                {
+                    isFloat = true;
+                    builder.Append('.');
+                    NextChar();
+
+                    if (!IsDigit(c))
+                    {
+                        RaiseUnexpected("while parsing the floating part of a number. Expecting a digit 0-9 after a period '.'"); // unit-test: 002-test-error-number3.txt
+                    }
+
+                    do
+                    {
+                        builder.Append(c);
+                        NextChar();
+                    } while (IsDigit(c));
+                }
+
+                if (c == 'e' || c == 'E')
+                {
+                    hasExponent = true;
+
+                    builder.Append(c);
+                    NextChar();
+                    if (c == '+' || c == '-')
+                    {
+                        builder.Append(c);
+                        NextChar();
+                    }
+
+                    if (!IsDigit(c))
+                    {
+                        RaiseUnexpected("while parsing the exponent of a number. Expecting a digit 0-9 after an exponent"); // unit-test: 002-test-error-number4.txt
+                    }
+
+                    do
+                    {
+                        builder.Append(c);
+                        NextChar();
+                    } while (IsDigit(c));
+                }
+
+                // Skip any whitespaces after a value
+                while (IsWhiteSpace(c))
+                {
+                    NextChar();
+                }
+
+                // If we are expecting to parse only things into strings, early exit here
+                if (settings.ParseValuesAsStrings)
+                {
+                    return builder.ToString();
+                }
+
+                if (isFloat || hasExponent)
+                {
+                    var numberAsText = builder.ToString();
+                    if (settings.ParseFloatAsDecimal)
+                    {
+                        decimal decimalNumber;
+                        if (decimal.TryParse(numberAsText, NumberStyles.Float, CultureInfo.InvariantCulture, out decimalNumber))
+                        {
+                            return decimalNumber;
+                        }
+                    }
+                    else
+                    {
+                        double doubleNumber;
+                        if (double.TryParse(numberAsText, NumberStyles.Float, CultureInfo.InvariantCulture, out doubleNumber))
+                        {
+                            return doubleNumber;
+                        }
+                    }
+                }
+                else
+                {
+                    // Fast parse for all integers smaller than  -999999999 <= value <= 999999999
+                    // 2147483647
+                    //  999999999
+                    const int maxIntStringEasyParse = 9;
+                    int intNumber = 0;
+                    if (builder.Length <= (isNegative ? maxIntStringEasyParse + 1 : maxIntStringEasyParse))
+                    {
+                        for (int i = isNegative ? 1 : 0; i < builder.Length; i++)
+                        {
+                            intNumber = intNumber * 10 + (builder[i] - '0');
+                        }
+                        return isNegative ? -intNumber : intNumber;
+                    }
+
+                    // Else go the long way
+
+                    // Try first to parse to an int
+                    var numberAsText = builder.ToString();
+                    if (int.TryParse(numberAsText, NumberStyles.Integer, CultureInfo.InvariantCulture, out intNumber))
+                    {
+                        return intNumber;
+                    }
+
+                    // Then a long
+                    long longNumber;
+                    if (long.TryParse(numberAsText, NumberStyles.Integer, CultureInfo.InvariantCulture, out longNumber))
+                    {
+                        return longNumber;
+                    }
+
+                    // Or an ulong
+                    ulong ulongNumber;
+                    if (ulong.TryParse(numberAsText, NumberStyles.Integer, CultureInfo.InvariantCulture, out ulongNumber))
+                    {
+                        return ulongNumber;
+                    }
+
+                    // Or a decimal
+                    decimal decimalNumber;
+                    if (decimal.TryParse(numberAsText, NumberStyles.Integer, CultureInfo.InvariantCulture, out decimalNumber))
+                    {
+                        return decimalNumber;
+                    }
+                }
+
+                RaiseException($"Unable to parse number [{builder}] to a valid C# number ");
+                return null;
+            }
+
+            private object ParseTrue()
+            {
+                NextChar();
+                if (c == 'r')
+                {
+                    NextChar();
+                    if (c == 'u')
+                    {
+                        NextChar();
+                        if (c == 'e')
+                        {
+                            NextCharSkipWhitespaces();
+                            return settings.ParseValuesAsStrings ? (object)"true" : true;
+                        }
+                    }
+                }
+                RaiseUnexpected("while trying to parse a BOOL 'true' value"); // unit-test: 000-test-error-true1.txt and 000-test-error-true2.txt
+                return null;
+            }
+
+            private object ParseFalse()
+            {
+                NextChar();
+                if (c == 'a')
+                {
+                    NextChar();
+                    if (c == 'l')
+                    {
+                        NextChar();
+                        if (c == 's')
+                        {
+                            NextChar();
+                            if (c == 'e')
+                            {
+                                NextCharSkipWhitespaces();
+                                return settings.ParseValuesAsStrings ? (object)"false" : false;
+                            }
+                        }
+                    }
+                }
+                RaiseUnexpected("while trying to parse a BOOL 'false' value"); // unit-test: 000-test-error-false1.txt
+                return null;
+            }
+
+            private object ParseNull()
+            {
+                NextChar();
+                if (c == 'u')
+                {
+                    NextChar();
+                    if (c == 'l')
+                    {
+                        NextChar();
+                        if (c == 'l')
+                        {
+                            NextCharSkipWhitespaces();
+                            return null;
+                        }
+                    }
+                }
+                RaiseUnexpected("while trying to parse the NULL 'null' value"); // unit-test: 000-test-error-null1.txt
+                return null;
+            }
+
+            private void RaiseException(string message)
+            {
+                reflector.OnDeserializeRaiseParsingError(offset, line, column, message, null);
+            }
+
+            private void RaiseUnexpected(string message)
+            {
+                RaiseException((isEof ? "Unexpected EOF " : $"Unexpected character '{EscapeChar(c)}' ") + message);
+            }
+
+            private void NextCharSkipWhitespaces()
+            {
+                do
+                {
+                    NextChar();
+                } while (IsWhiteSpace(c));
+            }
+
+            [MethodImpl((MethodImplOptions)256)]
+            private void NextChar()
+            {
+                var nextChar = Reader.Read();
+                if (nextChar < 0)
+                {
+                    if (c != Eof)
+                    {
+                        column++;
+                        offset++;
+                    }
+                    isEof = true;
+                    c = Eof;
+                    return;
+                }
+
+                if (c == '\n')
+                {
+                    offset++;
+                    column = 0;
+                    line++;
+                }
+                else if (c != Eof)
+                {
+                    offset++;
+                    column++;
+                }
+                c = (char)nextChar;
+            }
+
+            [MethodImpl((MethodImplOptions)256)]
+            private static bool IsWhiteSpace(char c)
+            {
+                return c == ' ' || c == '\n' || c == '\t' || c == '\r';
+            }
+
+            [MethodImpl((MethodImplOptions)256)]
+            private static bool IsDigit(char c)
+            {
+                return c >= '0' && c <= '9';
+            }
+
+            [MethodImpl((MethodImplOptions)256)]
+            private static int HexToInt(char c)
+            {
+                if (c >= '0' && c <= '9')
+                {
+                    return c - '0';
+                }
+                if (c >= 'a' && c <= 'f')
+                {
+                    return c - 'a' + 10;
+                }
+                return c - 'A' + 10;
+            }
+
+            [MethodImpl((MethodImplOptions)256)]
+            private static bool IsHex(char c)
+            {
+                return (c >= '0' && c <= '9') ||
+                       (c >= 'a' && c <= 'f') ||
+                       (c >= 'A' && c <= 'F');
             }
         }
 
-        public static IDictionary<string, object> FromJson(string json)
+        /// <summary>
+        /// The internal class used to serialize an object graph to a json text.
+        /// </summary>
+        private class JsonWriter
         {
-            JsonToken type;
+            private readonly TextWriter writer;
+            private readonly JsonSettings settings;
+            private readonly IJsonReflector reflector;
+            private readonly bool indent;
+            private readonly char indentChar;
+            private readonly int indentCount;
+            private int indentLevel;
+            private readonly Dictionary<Type, Action<object>> writers;
 
-            var result = FromJson(json, out type);
-
-            switch (type)
+            public JsonWriter(TextWriter writer, JsonSettings settings)
             {
-                case JsonToken.LeftBrace:
-                    var @object = (IDictionary<string, object>)result.Single().Value;
-                    return @object;
+                this.settings = settings;
+                this.reflector = settings.Reflector ?? JsonReflectorDefault.Instance;
+                this.writer = writer;
+                this.indent = settings.Indent;
+                this.indentChar = settings.IndentChar;
+                this.indentCount = settings.IndentCount;
+                this.indentLevel = 0;
+                writers = new Dictionary<Type, Action<object>>()
+                {
+                    // These converters have to match to the one declared in JsonReflectorDefault.Converters
+                    {typeof (string), value => WriteString((string) value)},
+                    {typeof (bool), value => { writer.Write((bool) value ? "true" : "false"); }},
+                    {typeof (char), value =>  { writer.Write(((char) value).ToString()); }},
+                    {typeof (byte), value =>  { writer.Write(((byte) value).ToString(CultureInfo.InvariantCulture)); }},
+                    {typeof (sbyte), value => { writer.Write(((sbyte) value).ToString(CultureInfo.InvariantCulture)); }},
+                    {typeof (short), value =>  { writer.Write(((short) value).ToString(CultureInfo.InvariantCulture)); }},
+                    {typeof (ushort), value => { writer.Write(((ushort) value).ToString(CultureInfo.InvariantCulture)); }},
+                    {typeof (int), value =>  { writer.Write(((int) value).ToString(CultureInfo.InvariantCulture)); }},
+                    {typeof (uint), value => { writer.Write(((uint) value).ToString(CultureInfo.InvariantCulture)); }},
+                    {typeof (long), value =>  { writer.Write(((long) value).ToString(CultureInfo.InvariantCulture)); }},
+                    {typeof (ulong), value => { writer.Write(((ulong) value).ToString(CultureInfo.InvariantCulture)); }},
+                    {typeof (float), value =>  { writer.Write(((double)(float) value).ToString("R", CultureInfo.InvariantCulture)); }},
+                    {typeof (double), value => { writer.Write(((double) value).ToString("R", CultureInfo.InvariantCulture)); }},
+                    {typeof (decimal), value =>  { writer.Write(((decimal) value).ToString(CultureInfo.InvariantCulture)); }},
+                    {typeof (Type), value => { WriteString(value.ToString()); }},
+                    {typeof (Guid), value =>  { WriteString(((Guid)value).ToString("D")); }},
+                    {typeof (StringBuilder), value => WriteString(((StringBuilder) value).ToString())}, // TODO: Could be optimized but it is a very uncommon case, so...
+                    {typeof (DateTime), value => { WriteString(((DateTime)value).ToString(CultureInfo.InvariantCulture)); }}, // TODO: handle correctly
+                    {typeof (TimeSpan), value => { WriteString(((TimeSpan)value).ToString()); }}, // TODO: handle correctly
+                };
             }
 
-            return result;
+            public void Write(object value)
+            {
+                if (value == null)
+                {
+                    writer.Write("null");
+                    return;
+                }
+
+                var type = value.GetType();
+                Action<object> valueWriter;
+
+                if (writers.TryGetValue(type, out valueWriter))
+                {
+                    valueWriter(value);
+                    return;
+                }
+
+                object objectContext;
+                var objectType = reflector.OnSerializeGetObjectType(value, type, out objectContext);
+                switch (objectType)
+                {
+                    case JsonObjectType.Object:
+                        WriteObject(reflector.OnSerializeGetObjectMembers(objectContext, value));
+                        break;
+                    case JsonObjectType.Array:
+                        WriteArray(reflector.OnSerializeGetArrayItems(objectContext, value));
+                        break;
+                    default:
+                        // Try to serialize as a string
+                        WriteString(Convert.ToString(value, CultureInfo.InvariantCulture));
+                        break;
+                }
+
+                //throw new InvalidOperationException($"Unsupported object type [{value.GetType()}]");
+            }
+
+            private void WriteObject(IEnumerable<KeyValuePair<string, object>> members)
+            {
+                writer.Write('{');
+                indentLevel++;
+                bool isFirst = true;
+                foreach (var keyValue in members)
+                {
+                    if (!isFirst)
+                    {
+                        writer.Write(',');
+                    }
+
+                    if (indent)
+                    {
+                        writer.Write('\n');
+                        Indent();
+                    }
+
+                    WriteString(keyValue.Key);
+                    writer.Write(':');
+                    if (indent)
+                    {
+                        writer.Write(' ');
+                    }
+                    Write(keyValue.Value);
+                    isFirst = false;
+                }
+                indentLevel--;
+                if (!isFirst && indent)
+                {
+                    writer.Write('\n');
+                    Indent();
+                }
+                writer.Write('}');
+            }
+
+            private void WriteArray(IEnumerable list)
+            {
+                // Serialize list
+                writer.Write('[');
+                indentLevel++;
+                bool isFirst = true;
+                foreach (var item in list)
+                {
+                    if (!isFirst)
+                    {
+                        writer.Write(',');
+                    }
+                    if (indent)
+                    {
+                        writer.Write('\n');
+                        Indent();
+                    }
+                    Write(item);
+                    isFirst = false;
+                }
+                indentLevel--;
+                if (!isFirst && indent)
+                {
+                    writer.Write('\n');
+                    Indent();
+                }
+                writer.Write(']');
+            }
+
+            [MethodImpl((MethodImplOptions)256)]
+            private void Indent()
+            {
+                for (int i = 0; i < indentCount * indentLevel; i++)
+                {
+                    writer.Write(indentChar);
+                }
+            }
+
+            private void WriteString(string text)
+            {
+                writer.Write('"');
+                for (int i = 0; i < text.Length; i++)
+                {
+                    var c = text[i];
+
+                    switch (c)
+                    {
+                        case '"':
+                            writer.Write('\\');
+                            writer.Write('\"');
+                            break;
+                        case '\\':
+                            writer.Write('\\');
+                            writer.Write('\\');
+                            break;
+                        case '\b':
+                            writer.Write('\\');
+                            writer.Write('b');
+                            break;
+                        case '\f':
+                            writer.Write('\\');
+                            writer.Write('f');
+                            break;
+                        case '\n':
+                            writer.Write('\\');
+                            writer.Write('n');
+                            break;
+                        case '\r':
+                            writer.Write('\\');
+                            writer.Write('r');
+                            break;
+                        case '\t':
+                            writer.Write('\\');
+                            writer.Write('t');
+                            break;
+                        default:
+                            if (c < ' ')
+                            {
+                                throw new ArgumentException($"Invalid control character '{EscapeChar(c)}' found in string");
+                            }
+
+                            if (IsHighSurrogate(c) || IsLowSurrogate(c))
+                            {
+                                writer.Write('\\');
+                                writer.Write('u');
+                                writer.Write(((int)c).ToString("X4", CultureInfo.InvariantCulture));
+                            }
+                            else
+                            {
+                                writer.Write(c);
+                            }
+                            break;
+                    }
+                }
+                writer.Write('"');
+            }
         }
 
-        public static IDictionary<string, object> FromJson(string json, out JsonToken type)
+        [MethodImpl((MethodImplOptions)256)]
+        private static bool IsHighSurrogate(char c)
         {
-            var data = json.ToCharArray();
-            var index = 0;
+            if ((int)c >= 55296)
+                return (int)c <= 56319;
+            return false;
+        }
 
-            // Rewind index for first token
-            var token = NextToken(data, ref index);
-            switch (token)
+        [MethodImpl((MethodImplOptions)256)]
+        private static bool IsLowSurrogate(char c)
+        {
+            if ((int)c >= 56320)
+                return (int)c <= 57343;
+            return false;
+        }
+
+
+        private static string EscapeChar(char chr)
+        {
+            // http://stackoverflow.com/questions/12309104/how-to-print-control-characters-in-console-window
+            switch (chr)
             {
-                case JsonToken.LeftBrace:   // Start Object
-                case JsonToken.LeftBracket: // Start Array
-                    index--;
-                    type = token;
-                    break;
+                case '\'':
+                    return @"\'";
+                case '"':
+                    return "\\\"";
+                case '\\':
+                    return @"\\";
+                case '\0':
+                    return @"\0";
+                case '\a':
+                    return @"\a";
+                case '\b':
+                    return @"\b";
+                case '\f':
+                    return @"\f";
+                case '\n':
+                    return @"\n";
+                case '\r':
+                    return @"\r";
+                case '\t':
+                    return @"\t";
+                case '\v':
+                    return @"\v";
                 default:
-                    throw new InvalidJsonException("JSON must begin with an object or array");
+                    if (char.IsControl(chr) || IsHighSurrogate(chr) || IsLowSurrogate(chr))
+                        return @"\u" + ((int)chr).ToString("X4");
+                    else
+                        return new string(chr, 1);
+            }
+        }
+
+        private sealed class JsonReflectorForValidate : IJsonReflector
+        {
+            public static readonly JsonReflectorForValidate Default = new JsonReflectorForValidate();
+
+            public void Initialize(JsonSettings settings)
+            {
             }
 
-            return ParseObject(data, ref index);
-        }
+            public object OnDeserializeEnterObject(object obj, Type expectedType, out object objectContext)
+            {
+                objectContext = null;
+                return null;
+            }
 
-        public static string ToJson(IDictionary<string, object> bag)
-        {
-            var sb = new StringBuilder(0);
+            public void OnDeserializePrepareMemberForObject(object objectContext, object obj, string member, out Type memberType,
+                out object memberContext, out object existingMemberValue)
+            {
+                memberType = typeof(object);
+                memberContext = null;
+                existingMemberValue = null;
+            }
 
-            SerializeItem(sb, bag);
+            public void OnDeserializeSetObjectMember(object objectContext, object obj, object memberContext, object value)
+            {
+            }
 
-            return sb.ToString();
-        }
-
-        internal static IDictionary<string, object> GetBagForObject(Type type, object instance)
-        {
-            CacheReflection(type);
-
-            if (type.FullName == null)
+            public object OnDeserializeExitObject(object objectContext, object obj)
             {
                 return null;
             }
 
-            var anonymous = type.FullName.Contains("__AnonymousType");
-            var map = _cache[type];
-
-            IDictionary<string, object> bag = InitializeBag();
-            foreach (var info in map)
+            public object OnDeserializeEnterArray(object obj, Type expectedType, out Type expectedArrayTypeItem, out object arrayContext)
             {
-                var readWrite = (info.CanWrite && info.CanRead);
-                if (!readWrite && !anonymous)
-                {
-                    continue;
-                }
-                var value = info.GetValue(instance, null);
-                bag.Add(info.Name, value);
+                expectedArrayTypeItem = null;
+                arrayContext = null;
+                return null;
             }
 
-            return bag;
-        }
-
-        internal static IDictionary<string, object> GetBagForObject<T>(T instance)
-        {
-            return GetBagForObject(typeof(T), instance);
-        }
-
-        internal static Dictionary<string, object> InitializeBag()
-        {
-            return new Dictionary<string, object>(
-                0, StringComparer.OrdinalIgnoreCase
-                );
-        }
-
-        internal static IEnumerable<PropertyInfo> PrepareInstance(out object instance, Type type)
-        {
-            instance = Activator.CreateInstance(type);
-
-            CacheReflection(type);
-
-            return _cache[type];
-        }
-
-        internal static IEnumerable<PropertyInfo> PrepareInstance<T>(out T instance)
-        {
-            instance = Activator.CreateInstance<T>();
-            var item = typeof(T);
-
-            CacheReflection(item);
-
-            return _cache[item];
-        }
-
-        internal static void CacheReflection(Type item)
-        {
-            if (_cache.ContainsKey(item))
+            public void OnDeserializeAddArrayItem(object arrayContext, object array, int index, object value)
             {
-                return;
             }
 
-            var properties = item.GetProperties(
-                BindingFlags.Public | BindingFlags.Instance
-                );
-
-            _cache.Add(item, properties);
-        }
-
-        internal static void SerializeItem(StringBuilder sb, object item)
-        {
-            if (item is IDictionary<string, object>)
+            public object OnDeserializeExitArray(object arrayContext, object obj)
             {
-                SerializeObject(item, sb);
-                return;
+                return null;
             }
 
-            if (item is IEnumerable)
+            public void OnDeserializeRaiseParsingError(int offset, int line, int column, string message, Exception inner)
             {
-                SerializeArray(item, sb);
-                return;
+                throw new JsonException(offset, line, column, message, inner);
             }
 
-            if (item is DateTime)
+
+            public JsonObjectType OnSerializeGetObjectType(object obj, Type type, out object objectContext)
             {
-                SerializeDateTime(sb);
-                return;
+                throw new NotImplementedException();
             }
 
-            if (item is bool)
+            public bool IsObjectType(Type type)
             {
-                sb.Append(((bool)item).ToString().ToLower());
-                return;
+                throw new NotImplementedException();
             }
 
-            double number;
-            var input = item != null ? item.ToString() : "";
-#if NETCF
-            if (input.TryParse(out number))
+            public bool IsArrayType(Type type)
             {
-                sb.Append(number);
-            }
-#else
-            if (double.TryParse(input, JsonNumbers, CultureInfo.InvariantCulture, out number))
-            {
-                sb.Append(number);
-                return;
-            }
-#endif
-            if (item == null)
-            {
-                sb.Append("null");
-                return;
+                throw new NotImplementedException();
             }
 
-            var bag = GetBagForObject(item.GetType(), item);
-            SerializeItem(sb, bag);
-        }
-
-        internal static void SerializeDateTime(StringBuilder sb)
-        {
-            var elapsed = DateTime.UtcNow - new DateTime(1970, 1, 1).ToUniversalTime();
-            var epoch = (long)elapsed.TotalSeconds;
-            SerializeString(sb, epoch);
-        }
-
-        internal static void SerializeArray(object item, StringBuilder sb)
-        {
-            var array = (IEnumerable)item;
-            sb.Append("[");
-            var count = 0;
-
-            var total = array.Cast<object>().Count();
-            foreach (var element in array)
+            public IEnumerable<KeyValuePair<string, object>> OnSerializeGetObjectMembers(object objectContext, object obj)
             {
-                SerializeItem(sb, element);
-                count++;
-                if (count < total)
-                {
-                    sb.Append(",");
-                }
-            }
-            sb.Append("]");
-        }
-
-        internal static void SerializeObject(object item, StringBuilder sb)
-        {
-            var nested = (IDictionary<string, object>)item;
-            sb.Append("{");
-
-            var count = 0;
-            foreach (var key in nested.Keys)
-            {
-                SerializeString(sb, key.ToLower());
-                sb.Append(":");
-
-                var value = nested[key];
-                if (value is string)
-                {
-                    SerializeString(sb, value);
-                }
-                else
-                {
-                    SerializeItem(sb, nested[key]);
-                }
-
-                if (count < nested.Keys.Count - 1)
-                {
-                    sb.Append(",");
-                }
-                count++;
-            }
-            sb.Append("}");
-        }
-
-
-        internal static void SerializeString(StringBuilder sb, object item)
-        {
-            sb.Append("\"");
-            var symbols = item.ToString().ToCharArray();
-
-            var unicodes = symbols.Select(symbol => (int)symbol).Select(GetUnicode);
-            foreach (var unicode in unicodes)
-            {
-                sb.Append(unicode);
+                throw new NotImplementedException();
             }
 
-            sb.Append("\"");
-        }
-
-        internal static string GetUnicode(int code)
-        {
-            // http://unicode.org/roadmaps/bmp/
-            var basicLatin = code >= 32 && code <= 126;
-            if (basicLatin)
+            public IEnumerable OnSerializeGetArrayItems(object objectContext, object array)
             {
-                var value = (char)code;
-                return value == '"' ? @"\""" : new string(value, 1);
+                throw new NotImplementedException();
             }
-
-            var unicode = BaseConvert(code, _base16, 4);
-            return string.Concat("\\u", unicode);
-        }
-
-        internal static KeyValuePair<string, object> ParsePair(IList<char> data, ref int index)
-        {
-            var valid = true;
-
-            var name = ParseString(data, ref index);
-            if (name == null)
-            {
-                valid = false;
-            }
-
-            if (!ParseToken(JsonToken.Colon, data, ref index))
-            {
-                valid = false;
-            }
-
-            if (!valid)
-            {
-                throw new InvalidJsonException(string.Format(
-                            "Invalid JSON found while parsing a value pair at index {0}.", index
-                            ));
-            }
-
-            index++;
-            var value = ParseValue(data, ref index);
-            return new KeyValuePair<string, object>(name, value);
-        }
-
-        internal static bool ParseToken(JsonToken token, IList<char> data, ref int index)
-        {
-            var nextToken = NextToken(data, ref index);
-            return token == nextToken;
-        }
-
-        internal static string ParseString(IList<char> data, ref int index)
-        {
-            var symbol = data[index];
-            IgnoreWhitespace(data, ref index, symbol);
-            symbol = data[++index]; // Skip first quotation
-
-            var sb = new StringBuilder();
-            while (true)
-            {
-                if (index >= data.Count - 1)
-                {
-                    return null;
-                }
-                switch (symbol)
-                {
-                    case '"':  // End String
-                        index++;
-                        return sb.ToString();
-                    case '\\': // Control Character
-                        symbol = data[++index];
-                        switch (symbol)
-                        {
-                            case '/':
-                                sb.Append(symbol);
-                                break;
-                            case '\\':
-                            case 'b':
-                            case 'f':
-                            case 'n':
-                            case 'r':
-                            case 't':
-                                break;
-                            case 'u': // Unicode literals
-                                if (index < data.Count - 5)
-                                {
-                                    var array = data.ToArray();
-                                    var buffer = new char[4];
-                                    Array.Copy(array, index + 1, buffer, 0, 4);
-
-                                    // http://msdn.microsoft.com/en-us/library/aa664669%28VS.71%29.aspx
-                                    // http://www.yoda.arachsys.com/csharp/unicode.html
-                                    // http://en.wikipedia.org/wiki/UTF-32/UCS-4
-                                    var hex = new string(buffer);
-                                    var unicode = (char)Convert.ToInt32(hex, 16);
-                                    sb.Append(unicode);
-                                    index += 4;
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                                break;
-                        }
-                        break;
-                    default:
-                        sb.Append(symbol);
-                        break;
-                }
-                symbol = data[++index];
-            }
-        }
-
-        internal static object ParseValue(IList<char> data, ref int index)
-        {
-            var token = NextToken(data, ref index);
-            switch (token)
-            {
-                // End Tokens
-                case JsonToken.RightBracket:    // Bad Data
-                case JsonToken.RightBrace:
-                case JsonToken.Unknown:
-                case JsonToken.Colon:
-                case JsonToken.Comma:
-                    throw new InvalidJsonException(string.Format(
-                            "Invalid JSON found while parsing a value at index {0}.", index
-                            ));
-                // Value Tokens
-                case JsonToken.LeftBrace:
-                    return ParseObject(data, ref index);
-                case JsonToken.LeftBracket:
-                    return ParseArray(data, ref index);
-                case JsonToken.String:
-                    return ParseString(data, ref index);
-                case JsonToken.Number:
-                    return ParseNumber(data, ref index);
-                case JsonToken.True:
-                    return true;
-                case JsonToken.False:
-                    return false;
-                case JsonToken.Null:
-                    return null;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        internal static IDictionary<string, object> ParseObject(IList<char> data, ref int index)
-        {
-            var result = InitializeBag();
-
-            index++; // Skip first token
-
-            while (index < data.Count - 1)
-            {
-                var token = NextToken(data, ref index);
-                switch (token)
-                {
-                    // End Tokens
-                    case JsonToken.Unknown:             // Bad Data
-                    case JsonToken.True:
-                    case JsonToken.False:
-                    case JsonToken.Null:
-                    case JsonToken.Colon:
-                    case JsonToken.RightBracket:
-                    case JsonToken.Number:
-                        throw new InvalidJsonException(string.Format(
-                            "Invalid JSON found while parsing an object at index {0}.", index
-                            ));
-                    case JsonToken.RightBrace:          // End Object
-                        index++;
-                        return result;
-                    // Skip Tokens
-                    case JsonToken.Comma:
-                        index++;
-                        break;
-                    // Start Tokens
-                    case JsonToken.LeftBrace:           // Start Object
-                        var @object = ParseObject(data, ref index);
-                        if (@object != null)
-                        {
-                            result.Add(string.Concat("object", result.Count), @object);
-                        }
-                        index++;
-                        break;
-                    case JsonToken.LeftBracket:         // Start Array
-                        var @array = ParseArray(data, ref index);
-                        if (@array != null)
-                        {
-                            result.Add(string.Concat("array", result.Count), @array);
-                        }
-                        index++;
-                        break;
-                    case JsonToken.String:
-                        var pair = ParsePair(data, ref index);
-                        result.Add(pair.Key, pair.Value);
-                        break;
-                    default:
-                        throw new NotSupportedException("Invalid token expected.");
-                }
-            }
-
-            return result;
-        }
-
-        internal static IEnumerable<object> ParseArray(IList<char> data, ref int index)
-        {
-            var result = new List<object>();
-
-            index++; // Skip first bracket
-            while (index < data.Count - 1)
-            {
-                var token = NextToken(data, ref index);
-                switch (token)
-                {
-                    // End Tokens
-                    case JsonToken.Unknown:             // Bad Data
-                        throw new InvalidJsonException(string.Format(
-                            "Invalid JSON found while parsing an array at index {0}.", index
-                            ));
-                    case JsonToken.RightBracket:        // End Array
-                        index++;
-                        return result;
-                    // Skip Tokens
-                    case JsonToken.Comma:               // Separator
-                    case JsonToken.RightBrace:          // End Object
-                    case JsonToken.Colon:               // Separator
-                        index++;
-                        break;
-                    // Value Tokens
-                    case JsonToken.LeftBrace:           // Start Object
-                        var nested = ParseObject(data, ref index);
-                        result.Add(nested);
-                        break;
-                    case JsonToken.LeftBracket:         // Start Array
-                    case JsonToken.String:
-                    case JsonToken.Number:
-                    case JsonToken.True:
-                    case JsonToken.False:
-                    case JsonToken.Null:
-                        var value = ParseValue(data, ref index);
-                        result.Add(value);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-            }
-
-            return result;
-        }
-
-        internal static object ParseNumber(IList<char> data, ref int index)
-        {
-            var symbol = data[index];
-            IgnoreWhitespace(data, ref index, symbol);
-
-            var start = index;
-            var length = 0;
-            while (ParseToken(JsonToken.Number, data, ref index))
-            {
-                length++;
-                index++;
-            }
-
-            var number = new char[length];
-            Array.Copy(data.ToArray(), start, number, 0, length);
-
-            double result;
-            var buffer = new string(number);
-#if NETCF
-            if (!buffer.TryParse(out result))
-            {
-                throw new InvalidJsonException(
-                    string.Format("Value '{0}' was not a valid JSON number", buffer)
-                    );
-            }
-#else
-            if (!double.TryParse(buffer, JsonNumbers, CultureInfo.InvariantCulture, out result))
-            {
-                throw new InvalidJsonException(
-                    string.Format("Value '{0}' was not a valid JSON number", buffer)
-                    );
-            }
-#endif
-
-            return result;
-        }
-
-        internal static JsonToken NextToken(IList<char> data, ref int index)
-        {
-            var symbol = data[index];
-            var token = GetTokenFromSymbol(symbol);
-            token = IgnoreWhitespace(data, ref index, ref token, symbol);
-
-            GetKeyword("true", JsonToken.True, data, ref index, ref token);
-            GetKeyword("false", JsonToken.False, data, ref index, ref token);
-            GetKeyword("null", JsonToken.Null, data, ref index, ref token);
-
-            return token;
-        }
-
-        internal static JsonToken GetTokenFromSymbol(char symbol)
-        {
-            return GetTokenFromSymbol(symbol, JsonToken.Unknown);
-        }
-
-        internal static JsonToken GetTokenFromSymbol(char symbol, JsonToken token)
-        {
-            switch (symbol)
-            {
-                case '{':
-                    token = JsonToken.LeftBrace;
-                    break;
-                case '}':
-                    token = JsonToken.RightBrace;
-                    break;
-                case ':':
-                    token = JsonToken.Colon;
-                    break;
-                case ',':
-                    token = JsonToken.Comma;
-                    break;
-                case '[':
-                    token = JsonToken.LeftBracket;
-                    break;
-                case ']':
-                    token = JsonToken.RightBracket;
-                    break;
-                case '"':
-                    token = JsonToken.String;
-                    break;
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                case '.':
-                case 'e':
-                case 'E':
-                case '+':
-                case '-':
-                    token = JsonToken.Number;
-                    break;
-            }
-            return token;
-        }
-
-        internal static void IgnoreWhitespace(IList<char> data, ref int index, char symbol)
-        {
-            var token = JsonToken.Unknown;
-            IgnoreWhitespace(data, ref index, ref token, symbol);
-            return;
-        }
-
-        internal static JsonToken IgnoreWhitespace(IList<char> data, ref int index, ref JsonToken token, char symbol)
-        {
-            switch (symbol)
-            {
-                case ' ':
-                case '\\':
-                case '/':
-                case '\b':
-                case '\f':
-                case '\n':
-                case '\r':
-                case '\t':
-                    index++;
-                    token = NextToken(data, ref index);
-                    break;
-            }
-            return token;
-        }
-
-        internal static void GetKeyword(string word,
-                                       JsonToken target,
-                                       IList<char> data,
-                                       ref int index,
-                                       ref JsonToken result)
-        {
-            var buffer = data.Count - index;
-            if (buffer < word.Length)
-            {
-                return;
-            }
-
-            for (var i = 0; i < word.Length; i++)
-            {
-                if (data[index + i] != word[i])
-                {
-                    return;
-                }
-            }
-
-            result = target;
-            index += word.Length;
-        }
-
-        internal static string BaseConvert(int input, char[] charSet, int minLength)
-        {
-            var sb = new StringBuilder();
-            var @base = charSet.Length;
-
-            while (input > 0)
-            {
-                var index = input % @base;
-                sb.Insert(0, new[] { charSet[index] });
-                input = input / @base;
-            }
-
-            while (sb.Length < minLength)
-            {
-                sb.Insert(0, "0");
-            }
-
-            return sb.ToString();
         }
     }
 
-#if NETCF
-    public static class CompactExtensions
+    /// <summary>
+    /// The default object used when a deserializing to an object type.
+    /// </summary>
+#if JSONITE_PUBLIC
+    public
+#else
+    internal
+#endif
+    class JsonObject : Dictionary<string, object>
     {
-        private const NumberStyles JsonNumbers = NumberStyles.Float;
-
-        public static bool TryParse(this string input, out double result)
+        public override string ToString()
         {
-            try
+            return Json.Serialize(this);
+        }
+    }
+
+    /// <summary>
+    /// The default array used when deserializing to an array type.
+    /// </summary>
+#if JSONITE_PUBLIC
+    public
+#else
+    internal
+#endif
+    class JsonArray : List<object>
+    {
+        public override string ToString()
+        {
+            return Json.Serialize(this);
+        }
+    }
+
+    /// <summary>
+    /// Instance exception used when a parsing exception occured.
+    /// </summary>
+    /// <remarks>
+    /// This exception can be overriden by overriding the method <see cref="IJsonReflector.OnDeserializeRaiseParsingError"/>.
+    /// </remarks>
+#if JSONITE_PUBLIC
+    public
+#else
+    internal
+#endif
+    class JsonException : Exception
+    {
+        public JsonException(int offset, int line, int column, string message, Exception inner = null) : base(message, inner)
+        {
+            Offset = offset;
+            Line = line;
+            Column = column;
+        }
+
+        /// <summary>
+        /// Character offset from the beginning of the text being parsed.
+        /// </summary>
+        public readonly int Offset;
+
+        /// <summary>
+        /// Line position (zero-based) where the error occured from the beginning of the text being parsed.
+        /// </summary>
+        public readonly int Line;
+
+        /// <summary>
+        /// Column position (zero-based) where the error occured.
+        /// </summary>
+        public readonly int Column;
+
+        /// <summary>
+        /// Prints the line (1-based) and column (1-based).
+        /// </summary>
+        /// <returns>A string representation of this object</returns>
+        public override string ToString()
+        {
+            var innerMessage = InnerException != null ? " Check inner exception for more details" : string.Empty;
+            return $"({Line + 1},{Column + 1}) : error : {Message}{innerMessage}";
+        }
+    }
+
+    /// <summary>
+    /// Defines serialization and deserialization settings used by <see cref="Json.Parse"/> and <see cref="Json.Serialize"/>
+    /// </summary>
+#if JSONITE_PUBLIC
+    public
+#else
+    internal
+#endif
+    class JsonSettings
+    {
+        public JsonSettings()
+        {
+            IndentCount = 2;
+            IndentChar = ' ';
+            Reflector = JsonReflectorDefault.Instance;
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum depth used when serializing or deserializing.
+        /// </summary>
+        public int MaxDepth { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating to indent the text when serializing. Default is <c>false</c>.
+        /// </summary>
+        public bool Indent { get; set; }
+
+        /// <summary>
+        /// Gets or sets the number of <see cref="IndentChar"/> used to indent a json output when <see cref="Indent"/> is <c>true</c>.
+        /// </summary>
+        public int IndentCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets the indent character used when <see cref="Indent"/> is <c>true</c>.
+        /// </summary>
+        public char IndentChar { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether floats should be deserialized to decimal instead of double (default).
+        /// </summary>
+        public bool ParseFloatAsDecimal { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether all values should be deserialized to strings instead of numbers.
+        /// </summary>
+        public bool ParseValuesAsStrings { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to allow trailing commas in object and array declaration.
+        /// </summary>
+        public bool AllowTrailingCommas { get; set; }
+
+        /// <summary>
+        /// Gets or sets the reflector used for interfacing the json text to an object graph.
+        /// </summary>
+        public IJsonReflector Reflector { get; set; }
+    }
+
+    /// <summary>
+    /// A callback interface used during the serialization and deserialization.
+    /// </summary>
+#if JSONITE_PUBLIC
+    public
+#else
+    internal
+#endif
+    interface IJsonReflector
+    {
+        /// <summary>
+        /// Initializes this instance with the specified settings.
+        /// </summary>
+        /// <param name="settings">The settings.</param>
+        void Initialize(JsonSettings settings);
+
+        /// <summary>
+        /// Called when starting to deserialize an object.
+        /// </summary>
+        /// <param name="obj">An existing object instance (may be null).</param>
+        /// <param name="expectedType">The expected type (not null).</param>
+        /// <param name="objectContext">The object context that will be passed to other deserialize methods for objects.</param>
+        /// <returns>The object instance to deserialize to. The return value must not be null. This instance can be the input <paramref name="obj"/> if not null, or this method could choose to replace the instance by another during the deserialization.</returns>
+        object OnDeserializeEnterObject(object obj, Type expectedType, out object objectContext);
+
+        /// <summary>
+        /// Called when deserializing a member, before deserializing its value.
+        /// </summary>
+        /// <param name="objectContext">The object context that was returned by the <see cref="OnDeserializeEnterObject"/></param>
+        /// <param name="obj">The object instance (not null).</param>
+        /// <param name="member">The member name being deserialized.</param>
+        /// <param name="memberType">Expected type of the member.</param>
+        /// <param name="memberContext">The member context that will be passed back to <see cref="OnDeserializeSetObjectMember"/>.</param>
+        /// <param name="existingMemberValue">The existing member value if any (may be null).</param>
+        void OnDeserializePrepareMemberForObject(object objectContext, object obj, string member, out Type memberType, out object memberContext, out object existingMemberValue);
+
+        /// <summary>
+        /// Called when deserializing a member value to effectively set the value for the member on the specified object instance.
+        /// </summary>
+        /// <param name="objectContext">The object context that was returned by the <see cref="OnDeserializeEnterObject"/></param>
+        /// <param name="obj">The object instance (not null).</param>
+        /// <param name="memberContext">The member context that was generated by <see cref="OnDeserializePrepareMemberForObject"/>.</param>
+        /// <param name="value">The value of the member to set on the object.</param>
+        void OnDeserializeSetObjectMember(object objectContext, object obj, object memberContext, object value);
+
+        /// <summary>
+        /// Called when deserializing an object is done. This method allows to transform the object to another value.
+        /// </summary>
+        /// <param name="objectContext">The object context.</param>
+        /// <param name="obj">The object instance that has been deserialized.</param>
+        /// <returns>The final object deserialized (may be different from <paramref name="obj"/>)</returns>
+        object OnDeserializeExitObject(object objectContext, object obj);
+
+        /// <summary>
+        /// Called when starting to deserialize an array.
+        /// </summary>
+        /// <param name="obj">An existing array instance (may be null).</param>
+        /// <param name="expectedType">The expected type of the array.</param>
+        /// <param name="expectedArrayTypeItem">The expected type of an array item.</param>
+        /// <param name="arrayContext">The array context that will be passed to other deserialize methods for arrays.</param>
+        /// <returns>The array instance to deserialize to. The return value must not be null.</returns>
+        object OnDeserializeEnterArray(object obj, Type expectedType, out Type expectedArrayTypeItem, out object arrayContext);
+
+        /// <summary>
+        /// Called when deserializing an array item to add to the specified array instance.
+        /// </summary>
+        /// <param name="arrayContext">The array context that was returned by the <see cref="OnDeserializeEnterArray"/></param>
+        /// <param name="array">The array being deserialized.</param>
+        /// <param name="index">The index of the next element (may be used for plain arrays).</param>
+        /// <param name="value">The value of the item to add to the array.</param>
+        void OnDeserializeAddArrayItem(object arrayContext, object array, int index, object value);
+
+        /// <summary>
+        /// Called when deserializing an array is done. This method allows to transform the array to another value (transform a list to a plain .NET array for example)
+        /// </summary>
+        /// <param name="arrayContext">The array context that was returned by the <see cref="OnDeserializeEnterArray"/></param>
+        /// <param name="obj">The array instance that has been deserialized.</param>
+        /// <returns>The final array instance deserialized (may be different from <paramref name="obj"/>)</returns>
+        object OnDeserializeExitArray(object arrayContext, object obj);
+
+        /// <summary>
+        /// Called when an error occured when deserializing. A default implementation should throw a <see cref="JsonException"/>.
+        /// </summary>
+        /// <param name="offset">The character position from the begining of the buffer being deserialized.</param>
+        /// <param name="line">The line position (zero-based)</param>
+        /// <param name="column">The column position (zero-based)</param>
+        /// <param name="message">The error message.</param>
+        /// <param name="inner">An optional inner exception.</param>
+        void OnDeserializeRaiseParsingError(int offset, int line, int column, string message, Exception inner);
+
+        /// <summary>
+        /// Called when serializing an object, to determine whether the object is an array or a simple object (with members/properties). 
+        /// This method is then used to correctly route to <see cref="OnSerializeGetObjectMembers"/> or <see cref="OnSerializeGetArrayItems"/>.
+        /// </summary>
+        /// <param name="obj">The object instance being serialized</param>
+        /// <param name="type">The type of the object being serialized.</param>
+        /// <param name="objectContext">An object context that will be passed to other serialize methods.</param>
+        /// <returns>The type of the specified object instance (array or object or unknown)</returns>
+        JsonObjectType OnSerializeGetObjectType(object obj, Type type, out object objectContext);
+
+        /// <summary>
+        /// Called when serializing an object to the members value of this object.
+        /// </summary>
+        /// <param name="objectContext">The object context that was returned by the <see cref="OnSerializeGetObjectType"/></param>
+        /// <param name="obj">The object instance being serialized.</param>
+        /// <returns>An enumeration of members [name, value].</returns>
+        IEnumerable<KeyValuePair<string, object>> OnSerializeGetObjectMembers(object objectContext, object obj);
+
+        /// <summary>
+        /// Called when serializing an array to get the array items.
+        /// </summary>
+        /// <param name="objectContext">The object context that was returned by the <see cref="OnSerializeGetObjectType"/></param>
+        /// <param name="array">The object instance being serialized.</param>
+        /// <returns>An enumeration of the array items to serialize.</returns>
+        IEnumerable OnSerializeGetArrayItems(object objectContext, object array);
+    }
+
+    /// <summary>
+    /// Defines the type of object when serializing (returned by method <see cref="IJsonReflector.OnSerializeGetObjectType"/>.
+    /// </summary>
+#if JSONITE_PUBLIC
+    public
+#else
+    internal
+#endif
+    enum JsonObjectType
+    {
+        /// <summary>
+        /// The object type being serialized is unkwown.
+        /// </summary>
+        Unknown,
+
+        /// <summary>
+        /// The object being serialized is an object with members.
+        /// </summary>
+        Object,
+
+        /// <summary>
+        /// The object being serialized is an array (providing <see cref="IEnumerable"/>)
+        /// </summary>
+        Array,
+    }
+
+    /// <summary>
+    /// The default implementation of <see cref="IJsonReflector"/> that allows to deserialize a JSON text to a generic <see cref="IDictionary{TKey,TValue}"/> <see cref="JsonObject"/> or <see cref="JsonArray"/>.
+    /// </summary>
+    /// <seealso cref="IJsonReflector" />
+#if JSONITE_PUBLIC
+    public
+#else
+    internal
+#endif
+    sealed class JsonReflectorDefault : IJsonReflector
+    {
+        public static readonly JsonReflectorDefault Instance = new JsonReflectorDefault();
+
+        private JsonReflectorDefault()
+        {
+        }
+
+        public void Initialize(JsonSettings settings)
+        {
+        }
+
+        public object OnDeserializeEnterObject(object obj, Type expectedType, out object objectContext)
+        {
+            if (!typeof(IDictionary<string, object>).GetTypeInfo().IsAssignableFrom(expectedType.GetTypeInfo()) && expectedType != typeof(object))
             {
-                result = double.Parse(input, JsonNumbers, CultureInfo.InvariantCulture);
-                return true;
+                throw new ArgumentException($"The default reflector only supports deserializing to a Dictionary<string, object> or a JsonObject instead of [{expectedType}]");
             }
-            catch (Exception)
+
+            objectContext = null;
+            return expectedType == typeof(object) || expectedType == typeof(JsonObject) || expectedType.GetTypeInfo().IsInterface
+                ? new JsonObject()
+                : Activator.CreateInstance(expectedType);
+        }
+
+        public void OnDeserializePrepareMemberForObject(object objectContext, object obj, string member, out Type expectedMemberType, out object memberContext, out object existingMemberValue)
+        {
+            memberContext = member;
+            expectedMemberType = typeof(object);
+            existingMemberValue = null;
+        }
+
+        public void OnDeserializeSetObjectMember(object objectContext, object target, object memberContext, object value)
+        {
+            ((IDictionary<string, object>)target)[(string)memberContext] = value;
+        }
+
+        public object OnDeserializeExitObject(object objectContext, object obj)
+        {
+            return obj;
+        }
+
+        public object OnDeserializeEnterArray(object obj, Type expectedType, out Type expectedArrayItemType, out object arrayContext)
+        {
+            if (!typeof(IList).GetTypeInfo().IsAssignableFrom(expectedType.GetTypeInfo()) && expectedType != typeof(object))
             {
-                result = 0;
-                return false;
+                throw new ArgumentException($"The default reflector only supports deserializing to a IList or a JsonArray instead of [{expectedType}]");
             }
+
+            arrayContext = null;
+            expectedArrayItemType = typeof(object);
+            return expectedType == typeof(object) || expectedType == typeof(JsonArray) || expectedType.GetTypeInfo().IsInterface
+                ? new JsonArray()
+                : Activator.CreateInstance(expectedType);
+        }
+
+        public void OnDeserializeAddArrayItem(object arrayContext, object array, int index, object value)
+        {
+            ((IList)array).Add(value);
+        }
+
+        public object OnDeserializeExitArray(object arrayContext, object obj)
+        {
+            return obj;
+        }
+        public void OnDeserializeRaiseParsingError(int offset, int line, int column, string message, Exception inner)
+        {
+            throw new JsonException(offset, line, column, message, inner);
+        }
+
+        public JsonObjectType OnSerializeGetObjectType(object obj, Type type, out object objectContext)
+        {
+            objectContext = null;
+            var typeInfo = type.GetTypeInfo();
+            if (typeof(IDictionary<string, object>).GetTypeInfo().IsAssignableFrom(typeInfo))
+            {
+                return JsonObjectType.Object;
+            }
+
+            if (typeof(IList).GetTypeInfo().IsAssignableFrom(typeInfo) ||
+                     typeof(IList<object>).GetTypeInfo().IsAssignableFrom(typeInfo))
+            {
+                return JsonObjectType.Array;
+            }
+            return JsonObjectType.Unknown;
+        }
+
+        public IEnumerable<KeyValuePair<string, object>> OnSerializeGetObjectMembers(object objectContext, object obj)
+        {
+            return ((IDictionary<string, object>)obj);
+        }
+
+        public IEnumerable OnSerializeGetArrayItems(object objectContext, object array)
+        {
+            return (IEnumerable)array;
+        }
+    }
+#if NETPRE45
+    static class ReflectionHelper
+    {
+        public static Type GetTypeInfo(this Type type)
+        {
+            return type;
         }
     }
 #endif

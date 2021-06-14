@@ -6,7 +6,7 @@ using System.Text;
 
 namespace hix
 {
-    class ColumnNode
+    class PropNode
     {
        
         private string original;
@@ -39,9 +39,9 @@ namespace hix
             get { return scheme; }
             set { scheme = value; }
         }
-        private Column column;
+        private Property column;
 
-        internal Column Column
+        internal Property Column
         {
             get { return column; }
             set { column = value; }
